@@ -7,17 +7,25 @@
   #  apt: name={{item}}
   #  with_items:
   #    - clamav
-  - name: Install ClamAV
-    package:
-      state: present
-      name:
-      - clamav
-      - clamd
+  #- name: Install ClamAV
+  #  package:
+  #    state: present
+  #    name:
+  #    - clamav
+  #    - clamd
+  #- name: Enable ClamAV service
+  #  service:
+  #    name: clamd
+  #    enabled: True
+  - name: Remove "clamav" package
+    apt:
+      name: clamav
+      state: absent
 
-  - name: Enable ClamAV service
-    service:
+  - name: Remove "clamad" package
+    apt:
       name: clamd
-      enabled: True
+      state: absent
 
   - name: add ansible user
     user:
