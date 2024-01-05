@@ -1,5 +1,5 @@
-- name: LinuxDeployables
-  hosts:  all
+- hosts:  localhost
+  connection: local
   become: true
 
   tasks:
