@@ -14,9 +14,8 @@
       dest: /anstmp/clamav-1.2.1.linux.x86_64.deb
       mode: '0644'
   - name: Install ClamAV package
-    ansible.builtin.dpkg_selections:
-      path: /anstmp/clamav-1.2.1.linux.x86_64.deb
-      state: present
+    ansible.builtin.apt:
+      deb: /anstmp/clamav-1.2.1.linux.x86_64.deb
   - name: add ansible user
     user:
       name: admin_ansible
