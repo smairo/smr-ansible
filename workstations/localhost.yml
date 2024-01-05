@@ -1,5 +1,5 @@
 - name: LinuxDeployables
-  hosts:  [localhost]
+  hosts:  all
   become: true
 
   tasks:
