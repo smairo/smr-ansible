@@ -4,9 +4,9 @@
 
   tasks:
     - name: Create temp directory
-    ansible.builtin.tempfile:
-      state: directory
-      suffix: tmp
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: tmp
   #- name: Install packages
   #  apt: name={{item}}
   #  with_items:
