@@ -7,3 +7,23 @@
     apt: name={{item}}
     with_items:
       - clamav
+
+  - name: add ansible user
+    user:
+      name: admin_ansible
+      system: yes
+
+  - name: set up sudo for ansible user
+    copy:
+      src: files/sudoer_admin_ansible
+      dest: /etc/sudoers.d/admin_ansible
+      owner: root
+      group: root
+      mode: 0440
+
+  - name: add ansible-pull cron job
+    cron:
+      name: ansible auto-provision
+      user: admin_ansible
+      hour: "*/8"
+      job: ansible-pull -o -U https://github.com/smairo/smr-ansible.git workstations/localhost.yml
