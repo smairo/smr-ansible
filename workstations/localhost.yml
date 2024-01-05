@@ -3,10 +3,21 @@
   become: true
 
   tasks:
-  - name: Install packages
-    apt: name={{item}}
-    with_items:
+  #- name: Install packages
+  #  apt: name={{item}}
+  #  with_items:
+  #    - clamav
+  - name: Install ClamAV
+    package:
+      state: present
+      name:
       - clamav
+      - clamd
+
+  - name: Enable ClamAV service
+    service:
+      name: clamd
+      enabled: True
 
   - name: add ansible user
     user:
