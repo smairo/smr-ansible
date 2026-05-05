@@ -1,0 +1,10 @@
+- name: Require workstation_hostname
+  ansible.builtin.assert:
+    that:
+      - workstation_hostname is defined
+      - workstation_hostname | length > 0
+    fail_msg: "Set workstation_hostname, for example: --extra-vars 'workstation_hostname=fedor'"
+
+- name: Set static hostname
+  ansible.builtin.hostname:
+    name: "{{ workstation_hostname }}"

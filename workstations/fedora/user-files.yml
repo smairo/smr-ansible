@@ -1,0 +1,53 @@
+- name: Resolve workstation file user
+  ansible.builtin.set_fact:
+    fedora_user_files_user: >-
+      {{
+        workstation_user
+        | default(
+          lookup('ansible.builtin.env', 'SUDO_USER')
+          | default(lookup('ansible.builtin.env', 'USER'), true),
+          true
+        )
+      }}
+
+- name: Require a desktop user for workstation files
+  ansible.builtin.assert:
+    that:
+      - fedora_user_files_user | length > 0
+      - fedora_user_files_user != 'root'
+      - fedora_user_files_user != 'admin_ansible'
+    fail_msg: "Set workstation_user to the desktop user for workstation file installation."
+
+- name: Require Git identity
+  ansible.builtin.assert:
+    that:
+      - git_user_email is defined
+      - git_user_email | length > 0
+      - git_user_name is defined
+      - git_user_name | length > 0
+    fail_msg: "Set git_user_email and git_user_name for Git configuration."
+
+- name: Read workstation file user account
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ fedora_user_files_user }}"
+
+- name: Set workstation file user home
+  ansible.builtin.set_fact:
+    fedora_user_files_home: "{{ ansible_facts.getent_passwd[fedora_user_files_user][4] }}"
+
+- name: Copy pulled zshrc
+  ansible.builtin.copy:
+    src: files/zshrc_pulled
+    dest: "{{ fedora_user_files_home }}/.zshrc_pulled"
+    owner: "{{ fedora_user_files_user }}"
+    group: "{{ fedora_user_files_user }}"
+    mode: "0644"
+
+- name: Template Git configuration
+  ansible.builtin.template:
+    src: files/gitconfig.j2
+    dest: "{{ fedora_user_files_home }}/.gitconfig"
+    owner: "{{ fedora_user_files_user }}"
+    group: "{{ fedora_user_files_user }}"
+    mode: "0644"

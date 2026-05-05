@@ -1,0 +1,80 @@
+- name: Install JetBrains Toolbox runtime dependencies
+  ansible.builtin.dnf:
+    name:
+      - dbus-daemon
+      - fontconfig
+      - gzip
+      - gtk3
+      - libXi
+      - libXrender
+      - libXtst
+      - mesa-demos
+      - tar
+      - xdg-utils
+    state: present
+
+- name: Read latest JetBrains Toolbox release
+  ansible.builtin.uri:
+    url: https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release
+    return_content: true
+    headers:
+      Accept: application/json
+      User-Agent: ansible
+  register: jetbrains_toolbox_latest_release
+
+- name: Resolve JetBrains Toolbox download
+  ansible.builtin.set_fact:
+    jetbrains_toolbox_download: >-
+      {{
+        jetbrains_toolbox_latest_release.json.TBA[0].downloads[
+          'linuxARM64' if ansible_architecture in ['aarch64', 'arm64'] else 'linux'
+        ]
+      }}
+
+- name: Require a JetBrains Toolbox Linux download
+  ansible.builtin.assert:
+    that:
+      - jetbrains_toolbox_download.link is defined
+      - jetbrains_toolbox_download.link | length > 0
+      - jetbrains_toolbox_download.checksumLink is defined
+      - jetbrains_toolbox_download.checksumLink | length > 0
+    fail_msg: "Could not find a JetBrains Toolbox Linux download in the latest release metadata."
+
+- name: Check JetBrains Toolbox binary
+  ansible.builtin.stat:
+    path: /opt/jetbrains-toolbox/bin/jetbrains-toolbox
+  register: jetbrains_toolbox_binary
+
+- name: Download JetBrains Toolbox
+  ansible.builtin.get_url:
+    url: "{{ jetbrains_toolbox_download.link }}"
+    dest: /anstmp/jetbrains-toolbox.tar.gz
+    checksum: "sha256:{{ jetbrains_toolbox_download.checksumLink }}"
+    mode: "0644"
+  register: jetbrains_toolbox_archive
+
+- name: Create JetBrains Toolbox install directory
+  ansible.builtin.file:
+    path: /opt/jetbrains-toolbox
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install JetBrains Toolbox
+  ansible.builtin.unarchive:
+    src: /anstmp/jetbrains-toolbox.tar.gz
+    dest: /opt/jetbrains-toolbox
+    remote_src: true
+    owner: root
+    group: root
+    extra_opts:
+      - --strip-components=1
+  when: jetbrains_toolbox_archive.changed or not jetbrains_toolbox_binary.stat.exists
+
+- name: Link JetBrains Toolbox command
+  ansible.builtin.file:
+    src: /opt/jetbrains-toolbox/bin/jetbrains-toolbox
+    dest: /usr/local/bin/jetbrains-toolbox
+    state: link
+    force: true

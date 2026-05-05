@@ -1,0 +1,61 @@
+- hosts: localhost
+  connection: local
+  become: true
+
+  tasks:
+    - name: Configure base workstation packages
+      ansible.builtin.import_tasks: fedora/base.yml
+
+    - name: Configure hostname
+      ansible.builtin.import_tasks: fedora/hostname.yml
+
+    - name: Configure RPM Fusion
+      ansible.builtin.import_tasks: fedora/rpmfusion.yml
+
+    - name: Configure Microsoft packages
+      ansible.builtin.import_tasks: fedora/microslop.yml
+
+    - name: Install PowerShell
+      ansible.builtin.import_tasks: fedora/powershell.yml
+
+    - name: Install Slack
+      ansible.builtin.import_tasks: fedora/slack.yml
+
+    - name: Install Vivaldi
+      ansible.builtin.import_tasks: fedora/vivaldi.yml
+
+    - name: Install Google Chrome
+      ansible.builtin.import_tasks: fedora/chrome.yml
+
+    - name: Install Postman
+      ansible.builtin.import_tasks: fedora/postman.yml
+
+    - name: Install JetBrains Toolbox
+      ansible.builtin.import_tasks: fedora/jetbrains-toolbox.yml
+
+    - name: Install Podman Desktop
+      ansible.builtin.import_tasks: fedora/podman-desktop.yml
+
+    - name: Install workstation packages
+      ansible.builtin.import_tasks: fedora/workstation-packages.yml
+
+    - name: Configure Oh My Zsh
+      ansible.builtin.import_tasks: fedora/oh-my-zsh.yml
+
+    - name: Install .NET global tools
+      ansible.builtin.import_tasks: fedora/dotnet-tools.yml
+
+    - name: Install workstation user files
+      ansible.builtin.import_tasks: fedora/user-files.yml
+
+    - name: Install JavaScript runtimes
+      ansible.builtin.import_tasks: fedora/javascript-runtimes.yml
+
+    - name: Configure virtualization
+      ansible.builtin.import_tasks: fedora/virtualization.yml
+
+    - name: Configure NVIDIA drivers
+      ansible.builtin.import_tasks: fedora/nvidia.yml
+
+    - name: Configure ansible-pull
+      ansible.builtin.import_tasks: fedora/ansible-pull.yml

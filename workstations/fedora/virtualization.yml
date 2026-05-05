@@ -1,0 +1,15 @@
+- name: Install virtualization packages
+  ansible.builtin.dnf:
+    name:
+      - qemu-kvm
+      - libvirt
+      - virt-install
+      - virt-manager
+      - libvirt-client
+    state: present
+
+- name: Enable and start libvirtd
+  ansible.builtin.service:
+    name: libvirtd
+    enabled: true
+    state: started

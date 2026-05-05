@@ -1,0 +1,125 @@
+- name: Resolve workstation runtime user
+  ansible.builtin.set_fact:
+    fedora_runtime_user: >-
+      {{
+        workstation_user
+        | default(
+          lookup('ansible.builtin.env', 'SUDO_USER')
+          | default(lookup('ansible.builtin.env', 'USER'), true),
+          true
+        )
+      }}
+
+- name: Require a desktop user for JavaScript runtimes
+  ansible.builtin.assert:
+    that:
+      - fedora_runtime_user | length > 0
+      - fedora_runtime_user != 'root'
+      - fedora_runtime_user != 'admin_ansible'
+    fail_msg: "Set workstation_user to the desktop user for Bun, NVM, and Node.js installation."
+
+- name: Read workstation runtime user account
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ fedora_runtime_user }}"
+
+- name: Set workstation runtime home
+  ansible.builtin.set_fact:
+    fedora_runtime_home: "{{ ansible_facts.getent_passwd[fedora_runtime_user][4] }}"
+
+- name: Install JavaScript runtime installer dependencies
+  ansible.builtin.dnf:
+    name:
+      - curl
+      - git
+      - unzip
+    state: present
+
+- name: Check workstation zshrc
+  become: true
+  become_user: "{{ fedora_runtime_user }}"
+  ansible.builtin.stat:
+    path: "{{ fedora_runtime_home }}/.zshrc"
+  register: fedora_runtime_zshrc
+  environment:
+    HOME: "{{ fedora_runtime_home }}"
+
+- name: Create workstation zshrc
+  become: true
+  become_user: "{{ fedora_runtime_user }}"
+  ansible.builtin.file:
+    path: "{{ fedora_runtime_home }}/.zshrc"
+    state: touch
+    mode: "0644"
+  when: not fedora_runtime_zshrc.stat.exists
+  environment:
+    HOME: "{{ fedora_runtime_home }}"
+
+- name: Download Bun installer
+  ansible.builtin.get_url:
+    url: https://bun.com/install
+    dest: /anstmp/bun-install.sh
+    mode: "0755"
+
+- name: Install Bun
+  become: true
+  become_user: "{{ fedora_runtime_user }}"
+  ansible.builtin.command:
+    cmd: /anstmp/bun-install.sh
+    creates: "{{ fedora_runtime_home }}/.bun/bin/bun"
+  environment:
+    BUN_INSTALL: "{{ fedora_runtime_home }}/.bun"
+    HOME: "{{ fedora_runtime_home }}"
+    SHELL: /usr/bin/zsh
+
+- name: Add Bun to zshrc
+  become: true
+  become_user: "{{ fedora_runtime_user }}"
+  ansible.builtin.blockinfile:
+    path: "{{ fedora_runtime_home }}/.zshrc"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - bun"
+    block: |
+      export BUN_INSTALL="$HOME/.bun"
+      export PATH="$BUN_INSTALL/bin:$PATH"
+  environment:
+    HOME: "{{ fedora_runtime_home }}"
+
+- name: Download NVM installer
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh
+    dest: /anstmp/nvm-install-0.40.4.sh
+    mode: "0755"
+
+- name: Install NVM
+  become: true
+  become_user: "{{ fedora_runtime_user }}"
+  ansible.builtin.command:
+    cmd: /anstmp/nvm-install-0.40.4.sh
+    creates: "{{ fedora_runtime_home }}/.nvm/nvm.sh"
+  environment:
+    HOME: "{{ fedora_runtime_home }}"
+    PROFILE: /dev/null
+
+- name: Add NVM to zshrc
+  become: true
+  become_user: "{{ fedora_runtime_user }}"
+  ansible.builtin.blockinfile:
+    path: "{{ fedora_runtime_home }}/.zshrc"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - nvm"
+    block: |
+      export NVM_DIR="$HOME/.nvm"
+      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+      [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+  environment:
+    HOME: "{{ fedora_runtime_home }}"
+
+- name: Install Node.js 25 with NVM
+  become: true
+  become_user: "{{ fedora_runtime_user }}"
+  ansible.builtin.shell:
+    cmd: source "{{ fedora_runtime_home }}/.nvm/nvm.sh" && nvm install 25
+    creates: "{{ fedora_runtime_home }}/.nvm/versions/node/v25.*"
+    executable: /bin/bash
+  environment:
+    HOME: "{{ fedora_runtime_home }}"
+    NVM_DIR: "{{ fedora_runtime_home }}/.nvm"

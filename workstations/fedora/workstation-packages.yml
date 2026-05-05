@@ -1,0 +1,14 @@
+- name: Install workstation packages
+  ansible.builtin.dnf:
+    name:
+      - kate
+      - btop
+      - krita
+      - nvtop
+      - java-21-openjdk
+      - java-21-openjdk-devel
+      - dotnet-sdk-8.0
+      - dotnet-sdk-9.0
+      - dotnet-sdk-10.0
+      - azure-cli
+    state: present

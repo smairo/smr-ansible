@@ -1,0 +1,74 @@
+- name: Resolve Podman Desktop user
+  ansible.builtin.set_fact:
+    fedora_podman_desktop_user: >-
+      {{
+        workstation_user
+        | default(
+          lookup('ansible.builtin.env', 'SUDO_USER')
+          | default(lookup('ansible.builtin.env', 'USER'), true),
+          true
+        )
+      }}
+
+- name: Require a desktop user for Podman Desktop
+  ansible.builtin.assert:
+    that:
+      - fedora_podman_desktop_user | length > 0
+      - fedora_podman_desktop_user != 'root'
+      - fedora_podman_desktop_user != 'admin_ansible'
+    fail_msg: "Set workstation_user to the desktop user for Podman Desktop installation."
+
+- name: Read Podman Desktop user account
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ fedora_podman_desktop_user }}"
+
+- name: Set Podman Desktop user home
+  ansible.builtin.set_fact:
+    fedora_podman_desktop_home: "{{ ansible_facts.getent_passwd[fedora_podman_desktop_user][4] }}"
+
+- name: Install Podman Desktop dependencies
+  ansible.builtin.dnf:
+    name:
+      - flatpak
+      - podman
+    state: present
+
+- name: List user Flatpak remotes
+  become: true
+  become_user: "{{ fedora_podman_desktop_user }}"
+  ansible.builtin.command:
+    cmd: flatpak remotes --user --columns=name
+  register: fedora_flatpak_remotes
+  changed_when: false
+  environment:
+    HOME: "{{ fedora_podman_desktop_home }}"
+
+- name: Add Flathub user remote
+  become: true
+  become_user: "{{ fedora_podman_desktop_user }}"
+  ansible.builtin.command:
+    cmd: flatpak remote-add --user flathub https://flathub.org/repo/flathub.flatpakrepo
+  when: "'flathub' not in fedora_flatpak_remotes.stdout_lines"
+  environment:
+    HOME: "{{ fedora_podman_desktop_home }}"
+
+- name: Check Podman Desktop Flatpak
+  become: true
+  become_user: "{{ fedora_podman_desktop_user }}"
+  ansible.builtin.command:
+    cmd: flatpak info --user io.podman_desktop.PodmanDesktop
+  register: fedora_podman_desktop_flatpak
+  changed_when: false
+  failed_when: false
+  environment:
+    HOME: "{{ fedora_podman_desktop_home }}"
+
+- name: Install Podman Desktop Flatpak
+  become: true
+  become_user: "{{ fedora_podman_desktop_user }}"
+  ansible.builtin.command:
+    cmd: flatpak install --user --noninteractive flathub io.podman_desktop.PodmanDesktop
+  when: fedora_podman_desktop_flatpak.rc != 0
+  environment:
+    HOME: "{{ fedora_podman_desktop_home }}"

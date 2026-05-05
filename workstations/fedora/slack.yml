@@ -1,0 +1,30 @@
+- name: Read Slack Linux download page
+  ansible.builtin.uri:
+    url: https://slack.com/downloads/linux
+    return_content: true
+    headers:
+      User-Agent: ansible
+  register: slack_linux_downloads
+
+- name: Resolve Slack RPM version
+  ansible.builtin.set_fact:
+    slack_rpm_version: >-
+      {{
+        (
+          slack_linux_downloads.content
+          | regex_findall('Version\\s+([0-9]+\\.[0-9]+\\.[0-9]+)')
+          | first
+          | default('', true)
+        )
+      }}
+
+- name: Require a Slack RPM version
+  ansible.builtin.assert:
+    that:
+      - slack_rpm_version | length > 0
+    fail_msg: "Could not find a Slack Linux RPM version on the Slack download page."
+
+- name: Install Slack
+  ansible.builtin.dnf:
+    name: "https://downloads.slack-edge.com/desktop-releases/linux/x64/{{ slack_rpm_version }}/slack-{{ slack_rpm_version }}-0.1.el8.x86_64.rpm"
+    state: present

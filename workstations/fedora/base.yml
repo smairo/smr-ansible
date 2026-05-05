@@ -1,0 +1,25 @@
+- name: Create a custom temp directory
+  ansible.builtin.file:
+    path: /anstmp
+    state: directory
+    mode: "0777"
+
+- name: Install base packages
+  ansible.builtin.dnf:
+    name:
+      - cronie
+      - zsh
+      - git
+      - git-lfs
+    state: present
+
+- name: Ensure crond is enabled and running
+  ansible.builtin.service:
+    name: crond
+    enabled: true
+    state: started
+
+- name: Remove quiet kernel boot argument
+  ansible.builtin.command:
+    cmd: grubby --update-kernel=ALL --remove-args=quiet
+  changed_when: true

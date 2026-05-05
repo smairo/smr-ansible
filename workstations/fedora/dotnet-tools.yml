@@ -1,0 +1,123 @@
+- name: Resolve .NET tools user
+  ansible.builtin.set_fact:
+    fedora_dotnet_tools_user: >-
+      {{
+        workstation_user
+        | default(
+          lookup('ansible.builtin.env', 'SUDO_USER')
+          | default(lookup('ansible.builtin.env', 'USER'), true),
+          true
+        )
+      }}
+
+- name: Require a desktop user for .NET global tools
+  ansible.builtin.assert:
+    that:
+      - fedora_dotnet_tools_user | length > 0
+      - fedora_dotnet_tools_user != 'root'
+      - fedora_dotnet_tools_user != 'admin_ansible'
+    fail_msg: "Set workstation_user to the desktop user for .NET global tool installation."
+
+- name: Read .NET tools user account
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ fedora_dotnet_tools_user }}"
+
+- name: Set .NET tools user home
+  ansible.builtin.set_fact:
+    fedora_dotnet_tools_home: "{{ ansible_facts.getent_passwd[fedora_dotnet_tools_user][4] }}"
+
+- name: Check .NET tools user zshrc
+  become: true
+  become_user: "{{ fedora_dotnet_tools_user }}"
+  ansible.builtin.stat:
+    path: "{{ fedora_dotnet_tools_home }}/.zshrc"
+  register: fedora_dotnet_tools_zshrc
+  environment:
+    HOME: "{{ fedora_dotnet_tools_home }}"
+
+- name: Create .NET tools user zshrc
+  become: true
+  become_user: "{{ fedora_dotnet_tools_user }}"
+  ansible.builtin.file:
+    path: "{{ fedora_dotnet_tools_home }}/.zshrc"
+    state: touch
+    mode: "0644"
+  when: not fedora_dotnet_tools_zshrc.stat.exists
+  environment:
+    HOME: "{{ fedora_dotnet_tools_home }}"
+
+- name: Add .NET global tools to zshrc
+  become: true
+  become_user: "{{ fedora_dotnet_tools_user }}"
+  ansible.builtin.blockinfile:
+    path: "{{ fedora_dotnet_tools_home }}/.zshrc"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - dotnet tools"
+    block: |
+      export PATH="$HOME/.dotnet/tools:$PATH"
+  environment:
+    HOME: "{{ fedora_dotnet_tools_home }}"
+
+- name: List installed .NET global tools
+  become: true
+  become_user: "{{ fedora_dotnet_tools_user }}"
+  ansible.builtin.command:
+    cmd: dotnet tool list --global
+  register: fedora_dotnet_global_tools
+  changed_when: false
+  environment:
+    DOTNET_CLI_HOME: "{{ fedora_dotnet_tools_home }}"
+    HOME: "{{ fedora_dotnet_tools_home }}"
+
+- name: Install Microsoft Artifacts Credential Provider .NET tool
+  become: true
+  become_user: "{{ fedora_dotnet_tools_user }}"
+  ansible.builtin.command:
+    cmd: dotnet tool install --global Microsoft.Artifacts.CredentialProvider.NuGet.Tool
+  when: "'microsoft.artifacts.credentialprovider.nuget.tool' not in (fedora_dotnet_global_tools.stdout | lower)"
+  environment:
+    DOTNET_CLI_HOME: "{{ fedora_dotnet_tools_home }}"
+    HOME: "{{ fedora_dotnet_tools_home }}"
+
+- name: Install Git Credential Manager .NET tool
+  become: true
+  become_user: "{{ fedora_dotnet_tools_user }}"
+  ansible.builtin.command:
+    cmd: dotnet tool install --global git-credential-manager
+  when: "'git-credential-manager' not in (fedora_dotnet_global_tools.stdout | lower)"
+  environment:
+    DOTNET_CLI_HOME: "{{ fedora_dotnet_tools_home }}"
+    HOME: "{{ fedora_dotnet_tools_home }}"
+
+- name: Configure Git Credential Manager
+  become: true
+  become_user: "{{ fedora_dotnet_tools_user }}"
+  ansible.builtin.command:
+    cmd: "{{ fedora_dotnet_tools_home }}/.dotnet/tools/git-credential-manager configure"
+    creates: "{{ fedora_dotnet_tools_home }}/.config/git-credential-manager/configured"
+  register: fedora_git_credential_manager_configure
+  environment:
+    DOTNET_CLI_HOME: "{{ fedora_dotnet_tools_home }}"
+    HOME: "{{ fedora_dotnet_tools_home }}"
+
+- name: Create Git Credential Manager marker directory
+  become: true
+  become_user: "{{ fedora_dotnet_tools_user }}"
+  ansible.builtin.file:
+    path: "{{ fedora_dotnet_tools_home }}/.config/git-credential-manager"
+    state: directory
+    mode: "0755"
+  when: fedora_git_credential_manager_configure.changed
+  environment:
+    HOME: "{{ fedora_dotnet_tools_home }}"
+
+- name: Mark Git Credential Manager configured
+  become: true
+  become_user: "{{ fedora_dotnet_tools_user }}"
+  ansible.builtin.file:
+    path: "{{ fedora_dotnet_tools_home }}/.config/git-credential-manager/configured"
+    state: touch
+    mode: "0644"
+  when: fedora_git_credential_manager_configure.changed
+  environment:
+    HOME: "{{ fedora_dotnet_tools_home }}"

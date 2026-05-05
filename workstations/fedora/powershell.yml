@@ -1,0 +1,39 @@
+- name: Import Microsoft package signing key for PowerShell
+  ansible.builtin.rpm_key:
+    key: https://packages.microsoft.com/keys/microsoft.asc
+    state: present
+
+- name: Read latest stable PowerShell release from GitHub
+  ansible.builtin.uri:
+    url: https://api.github.com/repos/PowerShell/PowerShell/releases/latest
+    return_content: true
+    headers:
+      Accept: application/vnd.github+json
+      User-Agent: ansible
+  register: powershell_latest_release
+
+- name: Resolve PowerShell RPM download URL
+  ansible.builtin.set_fact:
+    powershell_rpm_url: >-
+      {{
+        (
+          powershell_latest_release.json.assets | default([])
+          | selectattr('name', 'match', '^powershell-[0-9][^-]*-1\\.rh\\.x86_64\\.rpm$')
+          | map(attribute='browser_download_url')
+          | list
+          | first
+          | default('', true)
+        )
+      }}
+
+- name: Require a PowerShell RPM asset
+  ansible.builtin.assert:
+    that:
+      - powershell_rpm_url is defined
+      - powershell_rpm_url | length > 0
+    fail_msg: "Could not find a stable PowerShell .rh.x86_64.rpm asset in the latest GitHub release."
+
+- name: Install PowerShell
+  ansible.builtin.dnf:
+    name: "{{ powershell_rpm_url }}"
+    state: present

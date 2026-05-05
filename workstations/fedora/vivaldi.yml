@@ -1,0 +1,23 @@
+- name: Import Vivaldi package signing key
+  ansible.builtin.rpm_key:
+    key: https://repo.vivaldi.com/archive/linux_signing_key.pub
+    state: present
+
+- name: Configure Vivaldi repository
+  ansible.builtin.yum_repository:
+    name: vivaldi
+    description: vivaldi
+    baseurl: https://repo.vivaldi.com/archive/rpm/$basearch
+    enabled: true
+    gpgcheck: true
+    gpgkey: https://repo.vivaldi.com/archive/linux_signing_key.pub
+    file: vivaldi-fedora
+
+- name: Refresh DNF metadata for Vivaldi repository
+  ansible.builtin.dnf:
+    update_cache: true
+
+- name: Install Vivaldi
+  ansible.builtin.dnf:
+    name: vivaldi-stable
+    state: present

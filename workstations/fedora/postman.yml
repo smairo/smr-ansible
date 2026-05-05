@@ -1,0 +1,61 @@
+- name: Install Postman runtime dependencies
+  ansible.builtin.dnf:
+    name:
+      - gzip
+      - openssl
+      - tar
+    state: present
+
+- name: Check Postman binary
+  ansible.builtin.stat:
+    path: /opt/postman/Postman
+  register: postman_binary
+
+- name: Download Postman
+  ansible.builtin.get_url:
+    url: https://dl.pstmn.io/download/latest/linux64
+    dest: /anstmp/postman-linux-x64.tar.gz
+    mode: "0644"
+  register: postman_archive
+
+- name: Create Postman install directory
+  ansible.builtin.file:
+    path: /opt/postman
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install Postman
+  ansible.builtin.unarchive:
+    src: /anstmp/postman-linux-x64.tar.gz
+    dest: /opt/postman
+    remote_src: true
+    owner: root
+    group: root
+    extra_opts:
+      - --strip-components=1
+  when: postman_archive.changed or not postman_binary.stat.exists
+
+- name: Link Postman command
+  ansible.builtin.file:
+    src: /opt/postman/Postman
+    dest: /usr/local/bin/postman
+    state: link
+    force: true
+
+- name: Install Postman desktop launcher
+  ansible.builtin.copy:
+    dest: /usr/share/applications/postman.desktop
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Desktop Entry]
+      Encoding=UTF-8
+      Name=Postman
+      Exec=/opt/postman/Postman %U
+      Icon=/opt/postman/app/resources/app/assets/icon.png
+      Terminal=false
+      Type=Application
+      Categories=Development;

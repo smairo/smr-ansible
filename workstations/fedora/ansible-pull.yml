@@ -1,0 +1,21 @@
+- name: Add ansible user
+  ansible.builtin.user:
+    name: admin_ansible
+    system: true
+    create_home: false
+    shell: /usr/bin/zsh
+
+- name: Set up sudo for ansible user
+  ansible.builtin.copy:
+    src: files/sudoer_admin_ansible
+    dest: /etc/sudoers.d/admin_ansible
+    owner: root
+    group: root
+    mode: "0440"
+
+#- name: Add ansible-pull cron job
+#  ansible.builtin.cron:
+#    name: ansible auto-provision
+#    user: admin_ansible
+#    hour: "*/8"
+#    job: ansible-pull -o -U https://github.com/smairo/smr-ansible.git workstations/localhost.yml

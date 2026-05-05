@@ -1,0 +1,23 @@
+- name: Detect NVIDIA graphics hardware
+  ansible.builtin.shell:
+    cmd: "lspci -nn | grep -Ei 'vga|3d|display' | grep -i nvidia"
+  register: nvidia_gpu
+  changed_when: false
+  failed_when: false
+
+- name: Install NVIDIA driver dependencies and packages
+  when: nvidia_gpu.rc == 0
+  ansible.builtin.dnf:
+    name:
+      - kmodtool
+      - akmods
+      - mokutil
+      - openssl
+      - gcc
+      - kernel-headers
+      - kernel-devel
+      - akmod-nvidia
+      - xorg-x11-drv-nvidia
+      - xorg-x11-drv-nvidia-libs
+      - xorg-x11-drv-nvidia-libs.i686
+    state: present

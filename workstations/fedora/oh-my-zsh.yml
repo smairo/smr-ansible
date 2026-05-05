@@ -1,0 +1,128 @@
+- name: Resolve Oh My Zsh user
+  ansible.builtin.set_fact:
+    fedora_oh_my_zsh_user: >-
+      {{
+        workstation_user
+        | default(
+          lookup('ansible.builtin.env', 'SUDO_USER')
+          | default(lookup('ansible.builtin.env', 'USER'), true),
+          true
+        )
+      }}
+
+- name: Require a desktop user for Oh My Zsh
+  ansible.builtin.assert:
+    that:
+      - fedora_oh_my_zsh_user | length > 0
+      - fedora_oh_my_zsh_user != 'root'
+      - fedora_oh_my_zsh_user != 'admin_ansible'
+    fail_msg: "Set workstation_user to the desktop user for Oh My Zsh installation."
+
+- name: Read Oh My Zsh user account
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ fedora_oh_my_zsh_user }}"
+
+- name: Set Oh My Zsh user home
+  ansible.builtin.set_fact:
+    fedora_oh_my_zsh_home: "{{ ansible_facts.getent_passwd[fedora_oh_my_zsh_user][4] }}"
+
+- name: Set Oh My Zsh as default shell
+  ansible.builtin.user:
+    name: "{{ fedora_oh_my_zsh_user }}"
+    shell: /usr/bin/zsh
+
+- name: Install Oh My Zsh
+  become: true
+  become_user: "{{ fedora_oh_my_zsh_user }}"
+  ansible.builtin.git:
+    repo: https://github.com/ohmyzsh/ohmyzsh.git
+    dest: "{{ fedora_oh_my_zsh_home }}/.oh-my-zsh"
+    version: master
+    update: true
+  environment:
+    HOME: "{{ fedora_oh_my_zsh_home }}"
+
+- name: Create Oh My Zsh custom plugin directory
+  become: true
+  become_user: "{{ fedora_oh_my_zsh_user }}"
+  ansible.builtin.file:
+    path: "{{ fedora_oh_my_zsh_home }}/.oh-my-zsh/custom/plugins"
+    state: directory
+    mode: "0755"
+  environment:
+    HOME: "{{ fedora_oh_my_zsh_home }}"
+
+- name: Install zsh-syntax-highlighting plugin
+  become: true
+  become_user: "{{ fedora_oh_my_zsh_user }}"
+  ansible.builtin.git:
+    repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
+    dest: "{{ fedora_oh_my_zsh_home }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
+    version: master
+    update: true
+  environment:
+    HOME: "{{ fedora_oh_my_zsh_home }}"
+
+- name: Install fast-syntax-highlighting plugin
+  become: true
+  become_user: "{{ fedora_oh_my_zsh_user }}"
+  ansible.builtin.git:
+    repo: https://github.com/zdharma-continuum/fast-syntax-highlighting.git
+    dest: "{{ fedora_oh_my_zsh_home }}/.oh-my-zsh/custom/plugins/fast-syntax-highlighting"
+    version: master
+    update: true
+  environment:
+    HOME: "{{ fedora_oh_my_zsh_home }}"
+
+- name: Install zsh-autocomplete plugin
+  become: true
+  become_user: "{{ fedora_oh_my_zsh_user }}"
+  ansible.builtin.git:
+    repo: https://github.com/marlonrichert/zsh-autocomplete.git
+    dest: "{{ fedora_oh_my_zsh_home }}/.oh-my-zsh/custom/plugins/zsh-autocomplete"
+    version: main
+    update: true
+  environment:
+    HOME: "{{ fedora_oh_my_zsh_home }}"
+
+- name: Install zsh-history-substring-search plugin
+  become: true
+  become_user: "{{ fedora_oh_my_zsh_user }}"
+  ansible.builtin.git:
+    repo: https://github.com/zsh-users/zsh-history-substring-search.git
+    dest: "{{ fedora_oh_my_zsh_home }}/.oh-my-zsh/custom/plugins/zsh-history-substring-search"
+    version: master
+    update: true
+  environment:
+    HOME: "{{ fedora_oh_my_zsh_home }}"
+
+- name: Create Oh My Zsh user zshrc
+  become: true
+  become_user: "{{ fedora_oh_my_zsh_user }}"
+  ansible.builtin.file:
+    path: "{{ fedora_oh_my_zsh_home }}/.zshrc"
+    state: touch
+    mode: "0644"
+  environment:
+    HOME: "{{ fedora_oh_my_zsh_home }}"
+
+- name: Configure Oh My Zsh
+  become: true
+  become_user: "{{ fedora_oh_my_zsh_user }}"
+  ansible.builtin.blockinfile:
+    path: "{{ fedora_oh_my_zsh_home }}/.zshrc"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - oh my zsh"
+    block: |
+      export ZSH="$HOME/.oh-my-zsh"
+      ZSH_THEME="robbyrussell"
+      plugins=(
+        git
+        zsh-syntax-highlighting
+        fast-syntax-highlighting
+        zsh-autocomplete
+        zsh-history-substring-search
+      )
+      source "$ZSH/oh-my-zsh.sh"
+  environment:
+    HOME: "{{ fedora_oh_my_zsh_home }}"

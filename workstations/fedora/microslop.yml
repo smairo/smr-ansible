@@ -1,0 +1,39 @@
+- name: Import Microsoft package signing key
+  ansible.builtin.rpm_key:
+    key: https://packages.microsoft.com/keys/microsoft.asc
+    state: present
+
+- name: Configure Visual Studio Code repository
+  ansible.builtin.yum_repository:
+    name: code
+    description: Visual Studio Code
+    baseurl: https://packages.microsoft.com/yumrepos/vscode
+    enabled: true
+    gpgcheck: true
+    gpgkey: https://packages.microsoft.com/keys/microsoft.asc
+    file: vscode
+
+- name: Configure Microsoft Edge repository
+  ansible.builtin.yum_repository:
+    name: microsoft-edge
+    description: microsoft-edge
+    baseurl: https://packages.microsoft.com/yumrepos/edge
+    enabled: true
+    gpgcheck: true
+    repo_gpgcheck: false
+    gpgkey: https://packages.microsoft.com/keys/microsoft.asc
+    file: microsoft-edge
+
+- name: Refresh DNF metadata for Microsoft repositories
+  ansible.builtin.dnf:
+    update_cache: true
+
+- name: Install Visual Studio Code
+  ansible.builtin.dnf:
+    name: code
+    state: present
+
+- name: Install Microsoft Edge
+  ansible.builtin.dnf:
+    name: microsoft-edge-stable
+    state: present
