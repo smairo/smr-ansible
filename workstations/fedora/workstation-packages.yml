@@ -1,15 +1,45 @@
-- name: Install workstation packages
+- name: Install desktop workstation packages
   ansible.builtin.dnf:
     name:
       - kate
       - btop
       - krita
       - nvtop
+    state: present
+  register: fedora_desktop_workstation_packages
+
+- name: Install Java 21 packages
+  ansible.builtin.dnf:
+    name:
       - java-21-openjdk
       - java-21-openjdk-devel
+    state: present
+    update_cache: true
+  register: fedora_java_packages
+
+- name: Install .NET SDK packages
+  ansible.builtin.dnf:
+    name:
       - dotnet-sdk-8.0
       - dotnet-sdk-9.0
       - dotnet-sdk-10.0
+    state: present
+  register: fedora_dotnet_sdk_packages
+
+- name: Install Azure CLI
+  ansible.builtin.dnf:
+    name:
       - azure-cli
     state: present
-  register: fedora_workstation_packages
+  register: fedora_azure_cli_package
+
+- name: Record workstation package changes
+  ansible.builtin.set_fact:
+    fedora_workstation_packages:
+      changed: >-
+        {{
+          fedora_desktop_workstation_packages.changed
+          or fedora_java_packages.changed
+          or fedora_dotnet_sdk_packages.changed
+          or fedora_azure_cli_package.changed
+        }}

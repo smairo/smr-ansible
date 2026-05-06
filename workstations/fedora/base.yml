@@ -14,6 +14,12 @@
       - git-lfs
     state: present
 
+- name: Refresh Fedora DNF metadata
+  ansible.builtin.dnf:
+    update_cache: true
+  check_mode: false
+  changed_when: false
+
 - name: Ensure crond is enabled and running
   ansible.builtin.service:
     name: crond
