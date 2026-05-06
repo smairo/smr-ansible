@@ -2,56 +2,41 @@
   ansible.builtin.assert:
     that:
       - ansible_architecture == "x86_64"
-    fail_msg: "Slack publishes Fedora RPM packages for x86_64 only, not {{ ansible_architecture }}."
+    fail_msg: "Slack publishes Linux RPM packages for x86_64 only, not {{ ansible_architecture }}."
 
-- name: Import Slack Packagecloud repository signing key
+- name: Remove old Slack repository file
+  ansible.builtin.file:
+    path: /etc/yum.repos.d/slacktechnologies_slack.repo
+    state: absent
+
+- name: Import Slack package signing key
   ansible.builtin.rpm_key:
-    key: https://packagecloud.io/slacktechnologies/slack/gpgkey
+    key: https://slack.com/gpg/slack_pubkey_20251016.gpg
     state: present
-  register: fedora_slack_repository_key
-
-- name: Configure Slack Packagecloud repository
-  ansible.builtin.yum_repository:
-    name: slacktechnologies_slack
-    description: slacktechnologies_slack
-    # Slack publishes current Fedora RPMs in Packagecloud's Fedora 21 bucket.
-    baseurl: "https://packagecloud.io/slacktechnologies/slack/fedora/21/$basearch"
-    enabled: true
-    repo_gpgcheck: true
-    gpgcheck: false
-    gpgkey: https://packagecloud.io/slacktechnologies/slack/gpgkey
-    sslverify: true
-    sslcacert: /etc/pki/tls/certs/ca-bundle.crt
-    metadata_expire: 300
-    file: slacktechnologies_slack
-  register: fedora_slack_repository
-
-- name: Clear stale DNF metadata for Slack repository
-  ansible.builtin.command:
-    argv:
-      - dnf
-      - --disablerepo=*
-      - --enablerepo=slacktechnologies_slack
-      - clean
-      - metadata
-  changed_when: false
   when: not ansible_check_mode
 
-- name: Refresh DNF metadata for Slack repository
-  ansible.builtin.command:
-    argv:
-      - dnf
-      - --disablerepo=*
-      - --enablerepo=slacktechnologies_slack
-      - makecache
-  changed_when: false
+- name: Fetch Slack Linux RPM download page
+  ansible.builtin.uri:
+    url: https://slack.com/downloads/instructions/linux?ddl=1&build=rpm
+    return_content: true
+  register: fedora_slack_download_page
+  when: not ansible_check_mode
+
+- name: Find current Slack RPM download URL
+  ansible.builtin.set_fact:
+    fedora_slack_rpm_url: "{{ fedora_slack_download_page.content | regex_search('https://downloads\\.slack-edge\\.com/desktop-releases/linux/x64/[^\"]+\\.rpm') }}"
+  when: not ansible_check_mode
+
+- name: Ensure Slack RPM download URL was found
+  ansible.builtin.assert:
+    that:
+      - fedora_slack_rpm_url is defined
+      - fedora_slack_rpm_url is match("^https://downloads\\.slack-edge\\.com/desktop-releases/linux/x64/.+\\.rpm$")
+    fail_msg: "Could not find Slack's RPM download URL on the official Slack downloads page."
   when: not ansible_check_mode
 
 - name: Install Slack
   ansible.builtin.dnf:
-    name: slack
+    name: "{{ fedora_slack_rpm_url }}"
     state: present
-    enablerepo: slacktechnologies_slack
-  when: >
-    not ansible_check_mode
-    or not (fedora_slack_repository_key.changed or fedora_slack_repository.changed)
+  when: not ansible_check_mode
