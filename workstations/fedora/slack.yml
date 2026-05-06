@@ -8,7 +8,8 @@
   ansible.builtin.yum_repository:
     name: slacktechnologies_slack
     description: slacktechnologies_slack
-    baseurl: "https://packagecloud.io/slacktechnologies/slack/fedora/{{ ansible_distribution_major_version }}/$basearch"
+    # Slack publishes current Fedora RPMs in Packagecloud's Fedora 21 bucket.
+    baseurl: "https://packagecloud.io/slacktechnologies/slack/fedora/21/$basearch"
     enabled: true
     repo_gpgcheck: true
     gpgcheck: false
