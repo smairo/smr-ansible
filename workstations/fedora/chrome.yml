@@ -12,12 +12,15 @@
     gpgcheck: true
     gpgkey: https://dl.google.com/linux/linux_signing_key.pub
     file: google-chrome
+  register: fedora_google_chrome_repository
 
 - name: Refresh DNF metadata for Google Chrome repository
   ansible.builtin.dnf:
     update_cache: true
+  when: not ansible_check_mode or not fedora_google_chrome_repository.changed
 
 - name: Install Google Chrome
   ansible.builtin.dnf:
     name: google-chrome-stable
     state: present
+  when: not ansible_check_mode or not fedora_google_chrome_repository.changed

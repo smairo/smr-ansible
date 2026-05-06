@@ -52,6 +52,8 @@
   become_user: "{{ fedora_dotnet_tools_user }}"
   ansible.builtin.blockinfile:
     path: "{{ fedora_dotnet_tools_home }}/.zshrc"
+    create: true
+    mode: "0644"
     marker: "# {mark} ANSIBLE MANAGED BLOCK - dotnet tools"
     block: |
       export PATH="$HOME/.dotnet/tools:$PATH"
@@ -63,8 +65,10 @@
   become_user: "{{ fedora_dotnet_tools_user }}"
   ansible.builtin.command:
     cmd: dotnet tool list --global
+  check_mode: false
   register: fedora_dotnet_global_tools
   changed_when: false
+  when: not ansible_check_mode or not (fedora_workstation_packages.changed | default(false))
   environment:
     DOTNET_CLI_HOME: "{{ fedora_dotnet_tools_home }}"
     HOME: "{{ fedora_dotnet_tools_home }}"
@@ -74,7 +78,9 @@
   become_user: "{{ fedora_dotnet_tools_user }}"
   ansible.builtin.command:
     cmd: dotnet tool install --global Microsoft.Artifacts.CredentialProvider.NuGet.Tool
-  when: "'microsoft.artifacts.credentialprovider.nuget.tool' not in (fedora_dotnet_global_tools.stdout | lower)"
+  when:
+    - not ansible_check_mode
+    - "'microsoft.artifacts.credentialprovider.nuget.tool' not in (fedora_dotnet_global_tools.stdout | default('') | lower)"
   environment:
     DOTNET_CLI_HOME: "{{ fedora_dotnet_tools_home }}"
     HOME: "{{ fedora_dotnet_tools_home }}"
@@ -84,7 +90,9 @@
   become_user: "{{ fedora_dotnet_tools_user }}"
   ansible.builtin.command:
     cmd: dotnet tool install --global git-credential-manager
-  when: "'git-credential-manager' not in (fedora_dotnet_global_tools.stdout | lower)"
+  when:
+    - not ansible_check_mode
+    - "'git-credential-manager' not in (fedora_dotnet_global_tools.stdout | default('') | lower)"
   environment:
     DOTNET_CLI_HOME: "{{ fedora_dotnet_tools_home }}"
     HOME: "{{ fedora_dotnet_tools_home }}"
@@ -96,6 +104,7 @@
     cmd: "{{ fedora_dotnet_tools_home }}/.dotnet/tools/git-credential-manager configure"
     creates: "{{ fedora_dotnet_tools_home }}/.config/git-credential-manager/configured"
   register: fedora_git_credential_manager_configure
+  when: not ansible_check_mode
   environment:
     DOTNET_CLI_HOME: "{{ fedora_dotnet_tools_home }}"
     HOME: "{{ fedora_dotnet_tools_home }}"
@@ -107,7 +116,7 @@
     path: "{{ fedora_dotnet_tools_home }}/.config/git-credential-manager"
     state: directory
     mode: "0755"
-  when: fedora_git_credential_manager_configure.changed
+  when: fedora_git_credential_manager_configure.changed | default(false)
   environment:
     HOME: "{{ fedora_dotnet_tools_home }}"
 
@@ -118,6 +127,6 @@
     path: "{{ fedora_dotnet_tools_home }}/.config/git-credential-manager/configured"
     state: touch
     mode: "0644"
-  when: fedora_git_credential_manager_configure.changed
+  when: fedora_git_credential_manager_configure.changed | default(false)
   environment:
     HOME: "{{ fedora_dotnet_tools_home }}"

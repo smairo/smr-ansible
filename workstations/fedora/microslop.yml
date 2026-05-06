@@ -12,6 +12,7 @@
     gpgcheck: true
     gpgkey: https://packages.microsoft.com/keys/microsoft.asc
     file: vscode
+  register: fedora_vscode_repository
 
 - name: Configure Microsoft Edge repository
   ansible.builtin.yum_repository:
@@ -23,17 +24,23 @@
     repo_gpgcheck: false
     gpgkey: https://packages.microsoft.com/keys/microsoft.asc
     file: microsoft-edge
+  register: fedora_edge_repository
 
 - name: Refresh DNF metadata for Microsoft repositories
   ansible.builtin.dnf:
     update_cache: true
+  when: >
+    not ansible_check_mode
+    or not (fedora_vscode_repository.changed or fedora_edge_repository.changed)
 
 - name: Install Visual Studio Code
   ansible.builtin.dnf:
     name: code
     state: present
+  when: not ansible_check_mode or not fedora_vscode_repository.changed
 
 - name: Install Microsoft Edge
   ansible.builtin.dnf:
     name: microsoft-edge-stable
     state: present
+  when: not ansible_check_mode or not fedora_edge_repository.changed

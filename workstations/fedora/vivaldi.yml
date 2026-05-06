@@ -12,12 +12,15 @@
     gpgcheck: true
     gpgkey: https://repo.vivaldi.com/archive/linux_signing_key.pub
     file: vivaldi-fedora
+  register: fedora_vivaldi_repository
 
 - name: Refresh DNF metadata for Vivaldi repository
   ansible.builtin.dnf:
     update_cache: true
+  when: not ansible_check_mode or not fedora_vivaldi_repository.changed
 
 - name: Install Vivaldi
   ansible.builtin.dnf:
     name: vivaldi-stable
     state: present
+  when: not ansible_check_mode or not fedora_vivaldi_repository.changed

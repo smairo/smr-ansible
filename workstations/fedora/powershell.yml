@@ -2,6 +2,7 @@
   ansible.builtin.rpm_key:
     key: https://packages.microsoft.com/keys/microsoft.asc
     state: present
+  register: fedora_powershell_microsoft_key
 
 - name: Read latest stable PowerShell release from GitHub
   ansible.builtin.uri:
@@ -10,30 +11,52 @@
     headers:
       Accept: application/vnd.github+json
       User-Agent: ansible
+  check_mode: false
   register: powershell_latest_release
 
 - name: Resolve PowerShell RPM download URL
   ansible.builtin.set_fact:
-    powershell_rpm_url: >-
+    powershell_release_tag: "{{ powershell_latest_release.json.tag_name | default('', true) }}"
+    powershell_release_version: "{{ powershell_latest_release.json.tag_name | default('', true) | regex_replace('^v', '') }}"
+    powershell_rpm_asset: >-
       {{
         (
           powershell_latest_release.json.assets | default([])
-          | selectattr('name', 'match', '^powershell-[0-9][^-]*-1\\.rh\\.x86_64\\.rpm$')
-          | map(attribute='browser_download_url')
+          | selectattr('name', 'search', '^powershell-[0-9].*-[0-9]+\\.rh\\.x86_64\\.rpm$')
           | list
           | first
-          | default('', true)
+          | default({}, true)
         )
       }}
+
+- name: Resolve PowerShell RPM download URL fallback
+  ansible.builtin.set_fact:
+    powershell_rpm_url: >-
+      {{
+        powershell_rpm_asset.browser_download_url
+        | default(
+          'https://github.com/PowerShell/PowerShell/releases/download/'
+          ~ powershell_release_tag
+          ~ '/powershell-'
+          ~ powershell_release_version
+          ~ '-1.rh.x86_64.rpm',
+          true
+        )
+      }}
+  when: powershell_release_tag | length > 0
 
 - name: Require a PowerShell RPM asset
   ansible.builtin.assert:
     that:
       - powershell_rpm_url is defined
       - powershell_rpm_url | length > 0
-    fail_msg: "Could not find a stable PowerShell .rh.x86_64.rpm asset in the latest GitHub release."
+    fail_msg: >-
+      Could not resolve a stable PowerShell .rh.x86_64.rpm asset from the latest
+      GitHub release. Release tag={{ powershell_release_tag | default('missing') }},
+      assets={{ powershell_latest_release.json.assets | default([]) | map(attribute='name') | list }}.
 
 - name: Install PowerShell
   ansible.builtin.dnf:
     name: "{{ powershell_rpm_url }}"
     state: present
+  when: not ansible_check_mode or not fedora_powershell_microsoft_key.changed

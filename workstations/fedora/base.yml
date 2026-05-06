@@ -3,6 +3,7 @@
     path: /anstmp
     state: directory
     mode: "0777"
+  register: fedora_custom_temp_directory
 
 - name: Install base packages
   ansible.builtin.dnf:

@@ -60,6 +60,7 @@
     url: https://bun.com/install
     dest: /anstmp/bun-install.sh
     mode: "0755"
+  when: not ansible_check_mode or not (fedora_custom_temp_directory.changed | default(false))
 
 - name: Install Bun
   become: true
@@ -77,6 +78,8 @@
   become_user: "{{ fedora_runtime_user }}"
   ansible.builtin.blockinfile:
     path: "{{ fedora_runtime_home }}/.zshrc"
+    create: true
+    mode: "0644"
     marker: "# {mark} ANSIBLE MANAGED BLOCK - bun"
     block: |
       export BUN_INSTALL="$HOME/.bun"
@@ -89,6 +92,7 @@
     url: https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh
     dest: /anstmp/nvm-install-0.40.4.sh
     mode: "0755"
+  when: not ansible_check_mode or not (fedora_custom_temp_directory.changed | default(false))
 
 - name: Install NVM
   become: true
@@ -105,6 +109,8 @@
   become_user: "{{ fedora_runtime_user }}"
   ansible.builtin.blockinfile:
     path: "{{ fedora_runtime_home }}/.zshrc"
+    create: true
+    mode: "0644"
     marker: "# {mark} ANSIBLE MANAGED BLOCK - nvm"
     block: |
       export NVM_DIR="$HOME/.nvm"

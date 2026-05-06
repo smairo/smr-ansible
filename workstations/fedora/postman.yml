@@ -5,6 +5,7 @@
       - openssl
       - tar
     state: present
+  register: fedora_postman_dependencies
 
 - name: Check Postman binary
   ansible.builtin.stat:
@@ -17,6 +18,9 @@
     dest: /anstmp/postman-linux-x64.tar.gz
     mode: "0644"
   register: postman_archive
+  when:
+    - not ansible_check_mode or not (fedora_custom_temp_directory.changed | default(false))
+    - not ansible_check_mode or not fedora_postman_dependencies.changed
 
 - name: Create Postman install directory
   ansible.builtin.file:
@@ -35,7 +39,9 @@
     group: root
     extra_opts:
       - --strip-components=1
-  when: postman_archive.changed or not postman_binary.stat.exists
+  when:
+    - not ansible_check_mode
+    - postman_archive.changed | default(false) or not postman_binary.stat.exists
 
 - name: Link Postman command
   ansible.builtin.file:
@@ -43,6 +49,7 @@
     dest: /usr/local/bin/postman
     state: link
     force: true
+  when: not ansible_check_mode or postman_binary.stat.exists
 
 - name: Install Postman desktop launcher
   ansible.builtin.copy:
@@ -59,3 +66,4 @@
       Terminal=false
       Type=Application
       Categories=Development;
+  when: not ansible_check_mode or postman_binary.stat.exists

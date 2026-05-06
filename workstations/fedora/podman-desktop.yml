@@ -33,14 +33,17 @@
       - flatpak
       - podman
     state: present
+  register: fedora_podman_desktop_dependencies
 
 - name: List user Flatpak remotes
   become: true
   become_user: "{{ fedora_podman_desktop_user }}"
   ansible.builtin.command:
     cmd: flatpak remotes --user --columns=name
+  check_mode: false
   register: fedora_flatpak_remotes
   changed_when: false
+  when: not ansible_check_mode or not fedora_podman_desktop_dependencies.changed
   environment:
     HOME: "{{ fedora_podman_desktop_home }}"
 
@@ -49,7 +52,9 @@
   become_user: "{{ fedora_podman_desktop_user }}"
   ansible.builtin.command:
     cmd: flatpak remote-add --user flathub https://flathub.org/repo/flathub.flatpakrepo
-  when: "'flathub' not in fedora_flatpak_remotes.stdout_lines"
+  when:
+    - not ansible_check_mode
+    - "'flathub' not in (fedora_flatpak_remotes.stdout_lines | default([]))"
   environment:
     HOME: "{{ fedora_podman_desktop_home }}"
 
@@ -58,9 +63,11 @@
   become_user: "{{ fedora_podman_desktop_user }}"
   ansible.builtin.command:
     cmd: flatpak info --user io.podman_desktop.PodmanDesktop
+  check_mode: false
   register: fedora_podman_desktop_flatpak
   changed_when: false
   failed_when: false
+  when: not ansible_check_mode or not fedora_podman_desktop_dependencies.changed
   environment:
     HOME: "{{ fedora_podman_desktop_home }}"
 
@@ -69,6 +76,8 @@
   become_user: "{{ fedora_podman_desktop_user }}"
   ansible.builtin.command:
     cmd: flatpak install --user --noninteractive flathub io.podman_desktop.PodmanDesktop
-  when: fedora_podman_desktop_flatpak.rc != 0
+  when:
+    - not ansible_check_mode
+    - fedora_podman_desktop_flatpak.rc | default(1) != 0
   environment:
     HOME: "{{ fedora_podman_desktop_home }}"

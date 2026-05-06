@@ -7,9 +7,11 @@
       - virt-manager
       - libvirt-client
     state: present
+  register: fedora_virtualization_packages
 
 - name: Enable and start libvirtd
   ansible.builtin.service:
     name: libvirtd
     enabled: true
     state: started
+  when: not ansible_check_mode or not fedora_virtualization_packages.changed

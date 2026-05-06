@@ -12,6 +12,7 @@
       - tar
       - xdg-utils
     state: present
+  register: fedora_jetbrains_toolbox_dependencies
 
 - name: Read latest JetBrains Toolbox release
   ansible.builtin.uri:
@@ -20,6 +21,7 @@
     headers:
       Accept: application/json
       User-Agent: ansible
+  check_mode: false
   register: jetbrains_toolbox_latest_release
 
 - name: Resolve JetBrains Toolbox download
@@ -52,6 +54,9 @@
     checksum: "sha256:{{ jetbrains_toolbox_download.checksumLink }}"
     mode: "0644"
   register: jetbrains_toolbox_archive
+  when:
+    - not ansible_check_mode or not (fedora_custom_temp_directory.changed | default(false))
+    - not ansible_check_mode or not fedora_jetbrains_toolbox_dependencies.changed
 
 - name: Create JetBrains Toolbox install directory
   ansible.builtin.file:
@@ -70,7 +75,9 @@
     group: root
     extra_opts:
       - --strip-components=1
-  when: jetbrains_toolbox_archive.changed or not jetbrains_toolbox_binary.stat.exists
+  when:
+    - not ansible_check_mode
+    - jetbrains_toolbox_archive.changed | default(false) or not jetbrains_toolbox_binary.stat.exists
 
 - name: Link JetBrains Toolbox command
   ansible.builtin.file:
@@ -78,3 +85,4 @@
     dest: /usr/local/bin/jetbrains-toolbox
     state: link
     force: true
+  when: not ansible_check_mode or jetbrains_toolbox_binary.stat.exists

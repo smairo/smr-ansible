@@ -112,6 +112,8 @@
   become_user: "{{ fedora_oh_my_zsh_user }}"
   ansible.builtin.blockinfile:
     path: "{{ fedora_oh_my_zsh_home }}/.zshrc"
+    create: true
+    mode: "0644"
     marker: "# {mark} ANSIBLE MANAGED BLOCK - oh my zsh"
     block: |
       export ZSH="$HOME/.oh-my-zsh"

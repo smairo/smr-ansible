@@ -12,3 +12,4 @@
       - dotnet-sdk-10.0
       - azure-cli
     state: present
+  register: fedora_workstation_packages
