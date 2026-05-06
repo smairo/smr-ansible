@@ -8,11 +8,39 @@
     state: present
   register: fedora_desktop_workstation_packages
 
-- name: Install Java 21 packages
-  ansible.builtin.dnf:
-    name:
+- name: Select Fedora Java 21 packages
+  ansible.builtin.set_fact:
+    fedora_java_package_names:
       - java-21-openjdk
       - java-21-openjdk-devel
+  when: ansible_distribution_major_version | int < 44
+
+- name: Select Adoptium Java 21 package
+  ansible.builtin.set_fact:
+    fedora_java_package_names:
+      - temurin-21-jdk
+  when: ansible_distribution_major_version | int >= 44
+
+- name: Import Adoptium package signing key
+  ansible.builtin.rpm_key:
+    key: https://packages.adoptium.net/artifactory/api/gpg/key/public
+    state: present
+  when: ansible_distribution_major_version | int >= 44
+
+- name: Configure Adoptium repository
+  ansible.builtin.yum_repository:
+    name: adoptium
+    description: Eclipse Adoptium
+    baseurl: https://packages.adoptium.net/artifactory/rpm/fedora/$releasever/$basearch
+    enabled: true
+    gpgcheck: true
+    gpgkey: https://packages.adoptium.net/artifactory/api/gpg/key/public
+    file: adoptium
+  when: ansible_distribution_major_version | int >= 44
+
+- name: Install Java 21 packages
+  ansible.builtin.dnf:
+    name: "{{ fedora_java_package_names }}"
     state: present
     update_cache: true
   register: fedora_java_packages
