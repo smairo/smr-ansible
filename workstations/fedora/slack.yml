@@ -1,3 +1,9 @@
+- name: Ensure Slack RPM is available for this CPU architecture
+  ansible.builtin.assert:
+    that:
+      - ansible_architecture == "x86_64"
+    fail_msg: "Slack publishes Fedora RPM packages for x86_64 only, not {{ ansible_architecture }}."
+
 - name: Import Slack Packagecloud repository signing key
   ansible.builtin.rpm_key:
     key: https://packagecloud.io/slacktechnologies/slack/gpgkey
@@ -20,17 +26,32 @@
     file: slacktechnologies_slack
   register: fedora_slack_repository
 
+- name: Clear stale DNF metadata for Slack repository
+  ansible.builtin.command:
+    argv:
+      - dnf
+      - --disablerepo=*
+      - --enablerepo=slacktechnologies_slack
+      - clean
+      - metadata
+  changed_when: false
+  when: not ansible_check_mode
+
 - name: Refresh DNF metadata for Slack repository
-  ansible.builtin.dnf:
-    update_cache: true
-  when: >
-    not ansible_check_mode
-    or not (fedora_slack_repository_key.changed or fedora_slack_repository.changed)
+  ansible.builtin.command:
+    argv:
+      - dnf
+      - --disablerepo=*
+      - --enablerepo=slacktechnologies_slack
+      - makecache
+  changed_when: false
+  when: not ansible_check_mode
 
 - name: Install Slack
   ansible.builtin.dnf:
     name: slack
     state: present
+    enablerepo: slacktechnologies_slack
   when: >
     not ansible_check_mode
     or not (fedora_slack_repository_key.changed or fedora_slack_repository.changed)
