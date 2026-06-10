@@ -2,16 +2,14 @@
 
 ## Windows gaming workstation
 
-To pull and run the feature branch on a fresh machine:
+To run the Windows gaming setup on a fresh machine without cloning the repo:
 
 ```powershell
-git clone -b feature/windows https://github.com/smairo/smr-ansible.git
-cd smr-ansible
-powershell.exe -ExecutionPolicy Bypass -File .\gaming\windows_gaming.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/smairo/smr-ansible/main/gaming/windows_gaming.ps1 | iex"
 ```
 
 To mount SMB folders as persistent network drives, pass the SMB server URL, share names, and credentials:
 
 ```powershell
-powershell.exe -ExecutionPolicy Bypass -File .\gaming\windows_gaming.ps1 --smb-url \\192.168.1.111 --smb-folders A B C D --smb-user myuser --smb-password 1234
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/smairo/smr-ansible/main/gaming/windows_gaming.ps1))) --smb-url '\\192.168.1.111' --smb-folders A B C D --smb-user myuser --smb-password 1234"
 ```

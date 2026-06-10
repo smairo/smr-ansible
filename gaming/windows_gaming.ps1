@@ -21,7 +21,83 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$moduleRoot = Join-Path -Path $PSScriptRoot -ChildPath 'windows_gaming'
+function Invoke-WindowsGamingBootstrapDownload {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Uri,
+
+        [Parameter(Mandatory = $true)]
+        [string]$OutFile
+    )
+
+    $requestParams = @{
+        Uri = $Uri
+        OutFile = $OutFile
+    }
+
+    if ($PSVersionTable.PSEdition -eq 'Desktop') {
+        $requestParams.UseBasicParsing = $true
+    }
+
+    Invoke-WebRequest @requestParams
+}
+
+function Resolve-WindowsGamingModuleRoot {
+    [CmdletBinding()]
+    param(
+        [string]$ScriptRoot
+    )
+
+    $moduleFiles = @(
+        'common.ps1'
+        'config.ps1'
+        'winget.ps1'
+        'chocolatey.ps1'
+        'dolphin.ps1'
+        'rpcs3.ps1'
+        'vivaldi.ps1'
+        'nucleus-coop.ps1'
+        'smb.ps1'
+        'manual-review.ps1'
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($ScriptRoot)) {
+        $localModuleRoot = Join-Path -Path $ScriptRoot -ChildPath 'windows_gaming'
+        $localModuleComplete = $true
+
+        foreach ($moduleFile in $moduleFiles) {
+            $modulePath = Join-Path -Path $localModuleRoot -ChildPath $moduleFile
+            if (-not (Test-Path -LiteralPath $modulePath -PathType Leaf)) {
+                $localModuleComplete = $false
+                break
+            }
+        }
+
+        if ($localModuleComplete) {
+            return $localModuleRoot
+        }
+    }
+
+    $sourceBaseUrl = $env:SMR_WINDOWS_GAMING_SOURCE_BASE_URL
+    if ([string]::IsNullOrWhiteSpace($sourceBaseUrl)) {
+        $sourceBaseUrl = 'https://raw.githubusercontent.com/smairo/smr-ansible/main/gaming/windows_gaming'
+    }
+
+    $bootstrapRoot = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath ('smr-windows-gaming-' + [System.Guid]::NewGuid().ToString('N'))
+    $remoteModuleRoot = Join-Path -Path $bootstrapRoot -ChildPath 'windows_gaming'
+    New-Item -Path $remoteModuleRoot -ItemType Directory -Force | Out-Null
+
+    foreach ($moduleFile in $moduleFiles) {
+        $sourceUri = $sourceBaseUrl.TrimEnd('/') + '/' + $moduleFile
+        $modulePath = Join-Path -Path $remoteModuleRoot -ChildPath $moduleFile
+        Invoke-WindowsGamingBootstrapDownload -Uri $sourceUri -OutFile $modulePath
+    }
+
+    return $remoteModuleRoot
+}
+
+$moduleRoot = Resolve-WindowsGamingModuleRoot -ScriptRoot $PSScriptRoot
 
 . (Join-Path -Path $moduleRoot -ChildPath 'common.ps1')
 . (Join-Path -Path $moduleRoot -ChildPath 'config.ps1')
