@@ -1,12 +1,20 @@
 #Requires -Version 5.1
-[CmdletBinding(SupportsShouldProcess = $true)]
+[CmdletBinding(SupportsShouldProcess = $true, PositionalBinding = $false)]
 param(
     [switch]$AllowManualReviewPackages,
     [switch]$SkipDefenderExclusion,
     [switch]$FailOnWinGetPackageError,
     [switch]$FailOnChocolateyPackageError,
     [string]$DolphinInstallDir,
-    [string]$NucleusInstallDir
+    [string]$NucleusInstallDir,
+    [string]$SmbBasePath,
+    [string[]]$SmbFolders,
+    [string]$SmbUser,
+    [string]$SmbPassword,
+    [string[]]$SmbDriveLetters,
+
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$RemainingArgs
 )
 
 $ErrorActionPreference = 'Stop'
@@ -21,12 +29,56 @@ $moduleRoot = Join-Path -Path $PSScriptRoot -ChildPath 'windows_gaming'
 . (Join-Path -Path $moduleRoot -ChildPath 'rpcs3.ps1')
 . (Join-Path -Path $moduleRoot -ChildPath 'vivaldi.ps1')
 . (Join-Path -Path $moduleRoot -ChildPath 'nucleus-coop.ps1')
+. (Join-Path -Path $moduleRoot -ChildPath 'smb.ps1')
 . (Join-Path -Path $moduleRoot -ChildPath 'manual-review.ps1')
 
 Assert-Windows
 Assert-Administrator
 
 $config = Get-WindowsGamingConfig
+$argumentOverrides = ConvertFrom-WindowsGamingRemainingArguments -Arguments $RemainingArgs
+
+if ($argumentOverrides.ContainsKey('SmbBasePath')) {
+    $SmbBasePath = [string]$argumentOverrides.SmbBasePath
+}
+
+if ($argumentOverrides.ContainsKey('SmbFolders')) {
+    if ($SmbFolders) {
+        $SmbFolders = @($SmbFolders) + @($argumentOverrides.SmbFolders)
+    }
+    else {
+        $SmbFolders = @($argumentOverrides.SmbFolders)
+    }
+}
+
+if ($argumentOverrides.ContainsKey('SmbUser')) {
+    $SmbUser = [string]$argumentOverrides.SmbUser
+}
+
+if ($argumentOverrides.ContainsKey('SmbPassword')) {
+    $SmbPassword = [string]$argumentOverrides.SmbPassword
+}
+
+if ($argumentOverrides.ContainsKey('SmbDriveLetters')) {
+    if ($SmbDriveLetters) {
+        $SmbDriveLetters = @($SmbDriveLetters) + @($argumentOverrides.SmbDriveLetters)
+    }
+    else {
+        $SmbDriveLetters = @($argumentOverrides.SmbDriveLetters)
+    }
+}
+
+if ($argumentOverrides.ContainsKey('UnboundArguments')) {
+    if ($SmbFolders) {
+        $SmbFolders = @($SmbFolders) + @($argumentOverrides.UnboundArguments)
+    }
+    elseif ($SmbDriveLetters) {
+        $SmbDriveLetters = @($SmbDriveLetters) + @($argumentOverrides.UnboundArguments)
+    }
+    else {
+        throw "Unexpected argument(s): $($argumentOverrides.UnboundArguments -join ', ')"
+    }
+}
 
 if ($PSBoundParameters.ContainsKey('NucleusInstallDir')) {
     $config.NucleusCoop.InstallDir = $NucleusInstallDir
@@ -38,6 +90,26 @@ if ($PSBoundParameters.ContainsKey('DolphinInstallDir')) {
 
 if ($SkipDefenderExclusion) {
     $config.NucleusCoop.AddDefenderExclusion = $false
+}
+
+if ($PSBoundParameters.ContainsKey('SmbBasePath') -or $argumentOverrides.ContainsKey('SmbBasePath')) {
+    $config.SmbMappings.BasePath = $SmbBasePath
+}
+
+if ($SmbFolders) {
+    $config.SmbMappings.Folders = @($SmbFolders)
+}
+
+if ($PSBoundParameters.ContainsKey('SmbUser') -or $argumentOverrides.ContainsKey('SmbUser')) {
+    $config.SmbMappings.User = $SmbUser
+}
+
+if ($PSBoundParameters.ContainsKey('SmbPassword') -or $argumentOverrides.ContainsKey('SmbPassword')) {
+    $config.SmbMappings.Password = $SmbPassword
+}
+
+if ($SmbDriveLetters) {
+    $config.SmbMappings.DriveLetters = @($SmbDriveLetters)
 }
 
 Write-Section 'Installing WinGet packages'
@@ -77,6 +149,15 @@ foreach ($key in $config.NucleusCoop.Keys) {
     $nucleusParams[$key] = $config.NucleusCoop[$key]
 }
 Install-NucleusCoop @nucleusParams
+
+if ($config.SmbMappings.Folders -and $config.SmbMappings.Folders.Count -gt 0) {
+    Write-Section 'Mounting SMB drives'
+    $smbParams = @{}
+    foreach ($key in $config.SmbMappings.Keys) {
+        $smbParams[$key] = $config.SmbMappings[$key]
+    }
+    Mount-SmbFolders @smbParams
+}
 
 Write-Section 'Manual review packages'
 Assert-ManualReviewPackages `

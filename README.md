@@ -16,4 +16,16 @@ cd smr-ansible
 powershell.exe -ExecutionPolicy Bypass -File .\gaming\windows_gaming.ps1
 ```
 
-The script installs package-manager-backed gaming apps with WinGet and Chocolatey. WinGet and Chocolatey package failures are reported and the setup continues by default; use `-FailOnWinGetPackageError` or `-FailOnChocolateyPackageError` to restore strict failure behavior. Dolphin is installed from the official Windows x64 release archive into `C:\Dolphin`; use `-DolphinInstallDir` to override that path. RPCS3 is installed from the latest official Windows GitHub release archive into `C:\RPCS3`. Vivaldi is installed from the official Windows x64 installer discovered from `vivaldi.com/download/`. Nucleus Co-op is installed from the latest GitHub release ZIP into `C:\NucleusCo-op`; the script adds that folder to Microsoft Defender exclusions before extraction, unblocks the downloaded ZIP, extracts with 7-Zip using the `nucleus` password, and backs up an existing install folder before placing a clean copy. Citron and Ryujinx are kept in manual review; the script fails at the end by default so they are not silently skipped. Use `-AllowManualReviewPackages` to allow the setup to finish with that warning.
+To mount SMB folders from `\\192.168.1.64` as persistent network drives, pass the share names and credentials:
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File .\gaming\windows_gaming.ps1 --smb-folders misc game movie pro --smb-user smair --smb-password 1234
+```
+
+The SMB step maps each folder to the next free drive letter from `Z:` downward. To choose letters explicitly, pass the same number of letters as folders:
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File .\gaming\windows_gaming.ps1 --smb-folders misc game movie pro --smb-drive-letters M G O P --smb-user smair --smb-password 1234
+```
+
+The script installs package-manager-backed gaming apps with WinGet and Chocolatey. WinGet and Chocolatey package failures are reported and the setup continues by default; use `-FailOnWinGetPackageError` or `-FailOnChocolateyPackageError` to restore strict failure behavior. Dolphin is installed from the official Windows x64 release archive into `C:\Dolphin`; use `-DolphinInstallDir` to override that path. RPCS3 is installed from the latest official Windows GitHub release archive into `C:\RPCS3`. Vivaldi is installed from the official Windows x64 installer discovered from `vivaldi.com/download/`. Nucleus Co-op is installed from the latest GitHub release ZIP into `C:\NucleusCo-op`; the script adds that folder to Microsoft Defender exclusions before extraction, unblocks the downloaded ZIP, extracts with 7-Zip using the `nucleus` password, and backs up an existing install folder before placing a clean copy.

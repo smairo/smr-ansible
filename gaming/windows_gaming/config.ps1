@@ -37,8 +37,12 @@ function Get-WindowsGamingConfig {
             [pscustomobject]@{ Name = 'Playnite'; Id = 'Playnite.Playnite' }
             [pscustomobject]@{ Name = 'PCSX2'; Id = 'PCSX2Team.PCSX2' }
             [pscustomobject]@{ Name = 'Epic Games Launcher'; Id = 'EpicGames.EpicGamesLauncher' }
+            [pscustomobject]@{ Name = 'EA app'; Id = 'ElectronicArts.EADesktop' }
+            [pscustomobject]@{ Name = 'Ubisoft Connect'; Id = 'Ubisoft.Connect' }
             [pscustomobject]@{ Name = 'Rockstar Games Launcher'; Id = 'RockstarGames.Launcher' }
             [pscustomobject]@{ Name = 'Steam'; Id = 'Valve.Steam' }
+            [pscustomobject]@{ Name = 'Discord'; Id = 'Discord.Discord' }
+            [pscustomobject]@{ Name = 'OBS Studio'; Id = 'OBSProject.OBSStudio' }
             [pscustomobject]@{ Name = 'WinRAR'; Id = 'RARLab.WinRAR' }
             [pscustomobject]@{ Name = 'Proton VPN'; Id = 'Proton.ProtonVPN' }
             [pscustomobject]@{ Name = 'qBittorrent'; Id = 'qBittorrent.qBittorrent' }
@@ -75,15 +79,15 @@ function Get-WindowsGamingConfig {
             AddDefenderExclusion = $true
         }
 
-        ManualReviewPackages = @(
-            [pscustomobject]@{
-                Name = 'Citron'
-                Reason = 'No current WinGet or Chocolatey package was found.'
-            }
-            [pscustomobject]@{
-                Name = 'Ryujinx'
-                Reason = 'The official project and GitHub release assets were removed; the Chocolatey package now points at dead 404 download URLs.'
-            }
-        )
+        SmbMappings = @{
+            BasePath = '\\192.168.1.64'
+            Folders = @()
+            User = $null
+            Password = $null
+            DriveLetters = @()
+            Persistent = $true
+        }
+
+        ManualReviewPackages = @()
     }
 }

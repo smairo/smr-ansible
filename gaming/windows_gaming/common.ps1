@@ -122,3 +122,123 @@ function Invoke-RestMethodCompat {
 
     Invoke-RestMethod @requestParams
 }
+
+function ConvertFrom-WindowsGamingRemainingArguments {
+    [CmdletBinding()]
+    param(
+        [string[]]$Arguments
+    )
+
+    $result = @{}
+    if (-not $Arguments -or $Arguments.Count -eq 0) {
+        return $result
+    }
+
+    $optionNames = @{
+        '--smb-base' = 'SmbBasePath'
+        '-smb-base' = 'SmbBasePath'
+        '--smb-base-path' = 'SmbBasePath'
+        '-smb-base-path' = 'SmbBasePath'
+        '--smb-folders' = 'SmbFolders'
+        '-smb-folders' = 'SmbFolders'
+        '--smb-user' = 'SmbUser'
+        '-smb-user' = 'SmbUser'
+        '--smb-password' = 'SmbPassword'
+        '-smb-password' = 'SmbPassword'
+        '--smb-drive-letters' = 'SmbDriveLetters'
+        '-smb-drive-letters' = 'SmbDriveLetters'
+    }
+    $arrayOptionNames = @('SmbFolders', 'SmbDriveLetters')
+    $arrayValues = @{
+        SmbFolders = [System.Collections.Generic.List[string]]::new()
+        SmbDriveLetters = [System.Collections.Generic.List[string]]::new()
+    }
+    $unboundArguments = [System.Collections.Generic.List[string]]::new()
+
+    for ($index = 0; $index -lt $Arguments.Count; $index++) {
+        $token = [string]$Arguments[$index]
+        $optionToken = $token
+        $valueFromEquals = $null
+
+        if ($token -match '^(--?[^=]+)=(.*)$') {
+            $optionToken = $Matches[1]
+            $valueFromEquals = $Matches[2]
+        }
+
+        $optionKey = $optionToken.ToLowerInvariant()
+        if (-not $optionNames.ContainsKey($optionKey)) {
+            if ($optionToken.StartsWith('-', [System.StringComparison]::Ordinal)) {
+                throw "Unknown argument: $optionToken"
+            }
+
+            $unboundArguments.Add($token)
+            continue
+        }
+
+        $name = $optionNames[$optionKey]
+        if ($arrayOptionNames -contains $name) {
+            $values = [System.Collections.Generic.List[string]]::new()
+
+            if ($null -ne $valueFromEquals) {
+                foreach ($value in ($valueFromEquals -split ',')) {
+                    if ($value) {
+                        $values.Add($value)
+                    }
+                }
+            }
+            else {
+                while (($index + 1) -lt $Arguments.Count) {
+                    $nextToken = [string]$Arguments[$index + 1]
+                    $nextOptionToken = $nextToken
+                    if ($nextToken -match '^(--?[^=]+)=(.*)$') {
+                        $nextOptionToken = $Matches[1]
+                    }
+
+                    if ($optionNames.ContainsKey($nextOptionToken.ToLowerInvariant()) -or $nextOptionToken.StartsWith('-', [System.StringComparison]::Ordinal)) {
+                        break
+                    }
+
+                    $values.Add($nextToken)
+                    $index++
+                }
+            }
+
+            if ($values.Count -eq 0) {
+                throw "Missing value for $optionToken."
+            }
+
+            foreach ($value in $values) {
+                $arrayValues[$name].Add($value)
+            }
+
+            continue
+        }
+
+        if ($null -eq $valueFromEquals) {
+            if (($index + 1) -ge $Arguments.Count) {
+                throw "Missing value for $optionToken."
+            }
+
+            $valueFromEquals = [string]$Arguments[$index + 1]
+            if ($valueFromEquals.StartsWith('-', [System.StringComparison]::Ordinal)) {
+                throw "Missing value for $optionToken."
+            }
+
+            $index++
+        }
+
+        $result[$name] = $valueFromEquals
+    }
+
+    foreach ($name in $arrayOptionNames) {
+        if ($arrayValues[$name].Count -gt 0) {
+            $result[$name] = [string[]]$arrayValues[$name]
+        }
+    }
+
+    if ($unboundArguments.Count -gt 0) {
+        $result.UnboundArguments = [string[]]$unboundArguments
+    }
+
+    return $result
+}
