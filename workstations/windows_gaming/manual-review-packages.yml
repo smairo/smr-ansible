@@ -1,0 +1,14 @@
+- name: Report packages without automated install source
+  ansible.builtin.debug:
+    msg: "{{ windows_gaming_manual_review_packages }}"
+  when: windows_gaming_manual_review_packages | length > 0
+
+- name: Fail when requested packages still need manual install automation
+  ansible.builtin.fail:
+    msg: >-
+      Requested Windows packages still need manual install automation:
+      {{ windows_gaming_manual_review_packages | map(attribute='name') | join(', ') }}.
+      Set windows_gaming_fail_on_manual_review_packages=false to allow the rest of the setup to pass.
+  when:
+    - windows_gaming_manual_review_packages | length > 0
+    - windows_gaming_fail_on_manual_review_packages | bool
