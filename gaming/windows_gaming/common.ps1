@@ -135,6 +135,8 @@ function ConvertFrom-WindowsGamingRemainingArguments {
     }
 
     $optionNames = @{
+        '--smb-url' = 'SmbUrl'
+        '-smb-url' = 'SmbUrl'
         '--smb-base' = 'SmbBasePath'
         '-smb-base' = 'SmbBasePath'
         '--smb-base-path' = 'SmbBasePath'

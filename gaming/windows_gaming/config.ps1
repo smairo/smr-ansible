@@ -49,6 +49,7 @@ function Get-WindowsGamingConfig {
             [pscustomobject]@{ Name = 'WizTree'; Id = 'AntibodySoftware.WizTree' }
             [pscustomobject]@{ Name = 'Prism Launcher'; Id = 'PrismLauncher.PrismLauncher' }
             [pscustomobject]@{ Name = 'Vortex'; Id = 'NexusMods.Vortex' }
+            [pscustomobject]@{ Name = 'VLC media player'; Id = 'VideoLAN.VLC' }
         )
 
         Dolphin = @{
@@ -80,7 +81,7 @@ function Get-WindowsGamingConfig {
         }
 
         SmbMappings = @{
-            BasePath = '\\192.168.1.64'
+            BasePath = $null
             Folders = @()
             User = $null
             Password = $null

@@ -7,6 +7,7 @@ param(
     [switch]$FailOnChocolateyPackageError,
     [string]$DolphinInstallDir,
     [string]$NucleusInstallDir,
+    [string]$SmbUrl,
     [string]$SmbBasePath,
     [string[]]$SmbFolders,
     [string]$SmbUser,
@@ -49,6 +50,10 @@ $config = Get-WindowsGamingConfig
 
 if ($argumentOverrides.ContainsKey('SmbBasePath')) {
     $SmbBasePath = [string]$argumentOverrides.SmbBasePath
+}
+
+if ($argumentOverrides.ContainsKey('SmbUrl')) {
+    $SmbUrl = [string]$argumentOverrides.SmbUrl
 }
 
 if ($argumentOverrides.ContainsKey('SmbFolders')) {
@@ -105,6 +110,10 @@ if ($PSBoundParameters.ContainsKey('SmbBasePath') -or $argumentOverrides.Contain
     $config.SmbMappings.BasePath = $SmbBasePath
 }
 
+if ($PSBoundParameters.ContainsKey('SmbUrl') -or $argumentOverrides.ContainsKey('SmbUrl')) {
+    $config.SmbMappings.BasePath = $SmbUrl
+}
+
 if ($SmbFolders) {
     $config.SmbMappings.Folders = @($SmbFolders)
 }
@@ -119,6 +128,14 @@ if ($PSBoundParameters.ContainsKey('SmbPassword') -or $argumentOverrides.Contain
 
 if ($SmbDriveLetters) {
     $config.SmbMappings.DriveLetters = @($SmbDriveLetters)
+}
+
+if (
+    $config.SmbMappings.Folders -and
+    $config.SmbMappings.Folders.Count -gt 0 -and
+    [string]::IsNullOrWhiteSpace($config.SmbMappings.BasePath)
+) {
+    throw 'SMB URL is required when SMB folders are configured. Use -SmbUrl or --smb-url with a UNC path such as \\server.'
 }
 
 if ($SmbOnly) {

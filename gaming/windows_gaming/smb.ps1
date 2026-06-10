@@ -9,7 +9,7 @@ function Join-SmbRemotePath {
     )
 
     if ([string]::IsNullOrWhiteSpace($BasePath)) {
-        throw 'SMB base path cannot be empty.'
+        throw 'SMB URL cannot be empty.'
     }
 
     if ([string]::IsNullOrWhiteSpace($Folder)) {
@@ -18,7 +18,7 @@ function Join-SmbRemotePath {
 
     $cleanBasePath = $BasePath.Trim().TrimEnd('\')
     if (-not $cleanBasePath.StartsWith('\\', [System.StringComparison]::Ordinal)) {
-        throw "SMB base path must be a UNC path such as \\192.168.1.64."
+        throw 'SMB URL must be a UNC path such as \\server.'
     }
 
     $cleanFolder = $Folder.Trim()
