@@ -9,7 +9,6 @@ function Get-WindowsGamingConfig {
             [pscustomobject]@{ Name = 'Microsoft Visual C++ Redistributable 2015-2022 x86'; Id = 'Microsoft.VCRedist.2015+.x86' }
             [pscustomobject]@{ Name = 'Microsoft Edge WebView2 Runtime'; Id = 'Microsoft.EdgeWebView2Runtime' }
             [pscustomobject]@{ Name = 'Cemu'; Id = 'Cemu.Cemu' }
-            [pscustomobject]@{ Name = 'Dolphin'; Id = 'DolphinEmulator.Dolphin' }
             [pscustomobject]@{ Name = 'RetroArch'; Id = 'Libretro.RetroArch' }
             [pscustomobject]@{ Name = 'Xemu'; Id = 'xemu-project.xemu' }
             [pscustomobject]@{ Name = 'Xenia'; Id = 'Xenia.Xenia' }
@@ -18,7 +17,6 @@ function Get-WindowsGamingConfig {
             [pscustomobject]@{ Name = 'Epic Games Launcher'; Id = 'EpicGames.EpicGamesLauncher' }
             [pscustomobject]@{ Name = 'Rockstar Games Launcher'; Id = 'RockstarGames.Launcher' }
             [pscustomobject]@{ Name = 'Steam'; Id = 'Valve.Steam' }
-            [pscustomobject]@{ Name = 'Vivaldi'; Id = 'Vivaldi.Vivaldi' }
             [pscustomobject]@{ Name = 'WinRAR'; Id = 'RARLab.WinRAR' }
             [pscustomobject]@{ Name = 'Proton VPN'; Id = 'Proton.ProtonVPN' }
             [pscustomobject]@{ Name = 'qBittorrent'; Id = 'qBittorrent.qBittorrent' }
@@ -26,6 +24,20 @@ function Get-WindowsGamingConfig {
             [pscustomobject]@{ Name = 'Prism Launcher'; Id = 'PrismLauncher.PrismLauncher' }
             [pscustomobject]@{ Name = 'Vortex'; Id = 'NexusMods.Vortex' }
         )
+
+        Dolphin = @{
+            Version = '2603a'
+            DownloadUrl = 'https://dl.dolphin-emu.org/releases/2603a/dolphin-2603a-x64.7z'
+            ArchiveSha256 = '4cc6d975fe9646ed7326271ec9a2d84b93301de7cdb525c6b20ed97c0a715bf1'
+            ArchiveRoot = 'Dolphin-x64'
+            InstallDir = 'C:\Dolphin'
+        }
+
+        Vivaldi = @{
+            DownloadPageUrl = 'https://vivaldi.com/download/'
+            StateDir = Join-Path -Path $env:ProgramData -ChildPath 'smr-windows-gaming'
+            ExecutablePath = Join-Path -Path $env:ProgramFiles -ChildPath 'Vivaldi\Application\vivaldi.exe'
+        }
 
         ChocolateyPackages = @(
             'rpcs3'

@@ -39,3 +39,86 @@ function Get-NormalizedPath {
 
     return [System.IO.Path]::GetFullPath($Path).TrimEnd('\').ToLowerInvariant()
 }
+
+function Find-7Zip {
+    [CmdletBinding()]
+    param()
+
+    $command = Get-Command 7z.exe -ErrorAction SilentlyContinue
+    if ($command) {
+        return $command.Source
+    }
+
+    $paths = [System.Collections.Generic.List[string]]::new()
+
+    if ($env:ProgramFiles) {
+        $paths.Add((Join-Path -Path $env:ProgramFiles -ChildPath '7-Zip\7z.exe'))
+    }
+
+    $programFilesX86 = [Environment]::GetEnvironmentVariable('ProgramFiles(x86)')
+    if ($programFilesX86) {
+        $paths.Add((Join-Path -Path $programFilesX86 -ChildPath '7-Zip\7z.exe'))
+    }
+
+    foreach ($path in $paths) {
+        if ($path -and (Test-Path -LiteralPath $path)) {
+            return $path
+        }
+    }
+
+    return $null
+}
+
+function Invoke-WebRequestCompat {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Uri,
+
+        [hashtable]$Headers,
+
+        [string]$OutFile
+    )
+
+    $requestParams = @{
+        Uri = $Uri
+    }
+
+    if ($Headers) {
+        $requestParams.Headers = $Headers
+    }
+
+    if ($OutFile) {
+        $requestParams.OutFile = $OutFile
+    }
+
+    if ($PSVersionTable.PSEdition -eq 'Desktop') {
+        $requestParams.UseBasicParsing = $true
+    }
+
+    Invoke-WebRequest @requestParams
+}
+
+function Invoke-RestMethodCompat {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Uri,
+
+        [hashtable]$Headers
+    )
+
+    $requestParams = @{
+        Uri = $Uri
+    }
+
+    if ($Headers) {
+        $requestParams.Headers = $Headers
+    }
+
+    if ($PSVersionTable.PSEdition -eq 'Desktop') {
+        $requestParams.UseBasicParsing = $true
+    }
+
+    Invoke-RestMethod @requestParams
+}

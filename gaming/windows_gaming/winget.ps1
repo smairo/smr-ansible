@@ -29,7 +29,9 @@ function Test-WinGetPackageInstalled {
 function Install-WinGetPackages {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param(
-        [object[]]$Packages
+        [object[]]$Packages,
+
+        [switch]$FailOnError
     )
 
     if (-not $Packages -or $Packages.Count -eq 0) {
@@ -84,6 +86,10 @@ function Install-WinGetPackages {
 
     if ($failed.Count -gt 0) {
         $details = $failed | Format-List | Out-String
-        throw "One or more WinGet packages failed to install:`n$details"
+        if ($FailOnError) {
+            throw "One or more WinGet packages failed to install:`n$details"
+        }
+
+        Write-Warning "One or more WinGet packages failed to install. Continuing with the rest of the setup.`n$details"
     }
 }
