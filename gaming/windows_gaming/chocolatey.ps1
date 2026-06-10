@@ -31,7 +31,10 @@ function Install-ChocolateyCli {
     Write-Host 'Installing Chocolatey CLI.'
     Set-ExecutionPolicy Bypass -Scope Process -Force
     [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-    Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+    $installScript = (New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1')
+    Invoke-Expression $installScript | ForEach-Object {
+        Write-Host $_
+    }
 
     $choco = Get-ChocolateyCommand
     if (-not $choco) {
@@ -49,7 +52,9 @@ function Install-ChocolateyCli {
 function Install-ChocolateyPackages {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param(
-        [string[]]$Packages
+        [string[]]$Packages,
+
+        [switch]$FailOnError
     )
 
     if (-not $Packages -or $Packages.Count -eq 0) {
@@ -63,6 +68,8 @@ function Install-ChocolateyPackages {
         return
     }
 
+    $failed = [System.Collections.Generic.List[object]]::new()
+
     foreach ($package in $Packages) {
         if (-not $PSCmdlet.ShouldProcess($package, 'Install Chocolatey package')) {
             continue
@@ -73,9 +80,24 @@ function Install-ChocolateyPackages {
         $exitCode = $LASTEXITCODE
 
         if ($exitCode -ne 0) {
-            throw "Chocolatey package '$package' failed with exit code $exitCode.`n$($output | Out-String)"
+            $failed.Add([pscustomobject]@{
+                Name = $package
+                ExitCode = $exitCode
+                Output = ($output | Out-String).Trim()
+            })
+            Write-Warning "Failed Chocolatey package: $package"
+            continue
         }
 
         Write-Host "Chocolatey package present: $package"
+    }
+
+    if ($failed.Count -gt 0) {
+        $details = $failed | Format-List | Out-String
+        if ($FailOnError) {
+            throw "One or more Chocolatey packages failed to install:`n$details"
+        }
+
+        Write-Warning "One or more Chocolatey packages failed to install. Continuing with the rest of the setup.`n$details"
     }
 }

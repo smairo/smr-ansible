@@ -4,6 +4,7 @@ param(
     [switch]$AllowManualReviewPackages,
     [switch]$SkipDefenderExclusion,
     [switch]$FailOnWinGetPackageError,
+    [switch]$FailOnChocolateyPackageError,
     [string]$DolphinInstallDir,
     [string]$NucleusInstallDir
 )
@@ -44,7 +45,9 @@ Install-WinGetPackages `
     -FailOnError:$FailOnWinGetPackageError.IsPresent
 
 Write-Section 'Installing Chocolatey packages'
-Install-ChocolateyPackages -Packages $config.ChocolateyPackages
+Install-ChocolateyPackages `
+    -Packages $config.ChocolateyPackages `
+    -FailOnError:$FailOnChocolateyPackageError.IsPresent
 
 Write-Section 'Installing Dolphin'
 $dolphinParams = @{}
