@@ -18,6 +18,7 @@ $moduleRoot = Join-Path -Path $PSScriptRoot -ChildPath 'windows_gaming'
 . (Join-Path -Path $moduleRoot -ChildPath 'winget.ps1')
 . (Join-Path -Path $moduleRoot -ChildPath 'chocolatey.ps1')
 . (Join-Path -Path $moduleRoot -ChildPath 'dolphin.ps1')
+. (Join-Path -Path $moduleRoot -ChildPath 'rpcs3.ps1')
 . (Join-Path -Path $moduleRoot -ChildPath 'vivaldi.ps1')
 . (Join-Path -Path $moduleRoot -ChildPath 'nucleus-coop.ps1')
 . (Join-Path -Path $moduleRoot -ChildPath 'manual-review.ps1')
@@ -55,6 +56,13 @@ foreach ($key in $config.Dolphin.Keys) {
     $dolphinParams[$key] = $config.Dolphin[$key]
 }
 Install-Dolphin @dolphinParams
+
+Write-Section 'Installing RPCS3'
+$rpcs3Params = @{}
+foreach ($key in $config.RPCS3.Keys) {
+    $rpcs3Params[$key] = $config.RPCS3[$key]
+}
+Install-RPCS3 @rpcs3Params
 
 Write-Section 'Installing Vivaldi'
 $vivaldiParams = @{}

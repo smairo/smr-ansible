@@ -65,6 +65,22 @@ function Test-VivaldiInstallerSignature {
     }
 }
 
+function Get-VivaldiExecutablePath {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$ExecutablePaths
+    )
+
+    foreach ($path in $ExecutablePaths) {
+        if ($path -and (Test-Path -LiteralPath $path)) {
+            return $path
+        }
+    }
+
+    return $null
+}
+
 function Install-Vivaldi {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param(
@@ -75,18 +91,19 @@ function Install-Vivaldi {
         [string]$StateDir,
 
         [Parameter(Mandatory = $true)]
-        [string]$ExecutablePath
+        [string[]]$ExecutablePaths
     )
 
     $download = Get-VivaldiDownload -DownloadPageUrl $DownloadPageUrl
     $marker = Get-VivaldiMarker -StateDir $StateDir
     $markerPath = Join-Path -Path $StateDir -ChildPath 'vivaldi-release.json'
+    $existingExecutablePath = Get-VivaldiExecutablePath -ExecutablePaths $ExecutablePaths
 
     if ($marker) {
         $installedReleaseMatches = (
             ($marker.Data.version -eq $download.Version) -and
             ($marker.Data.download_url -eq $download.Url) -and
-            (Test-Path -LiteralPath $ExecutablePath)
+            $existingExecutablePath
         )
 
         if ($installedReleaseMatches) {
@@ -95,7 +112,7 @@ function Install-Vivaldi {
         }
     }
 
-    if (-not $PSCmdlet.ShouldProcess($ExecutablePath, "Install Vivaldi $($download.Version)")) {
+    if (-not $PSCmdlet.ShouldProcess(($ExecutablePaths -join ', '), "Install Vivaldi $($download.Version)")) {
         return
     }
 
@@ -130,18 +147,19 @@ function Install-Vivaldi {
             throw "Vivaldi installer failed with exit code $exitCode`: $($installOutput | Out-String)"
         }
 
-        if (-not (Test-Path -LiteralPath $ExecutablePath)) {
-            throw "Vivaldi executable was not found after installation: $ExecutablePath"
+        $installedExecutablePath = Get-VivaldiExecutablePath -ExecutablePaths $ExecutablePaths
+        if (-not $installedExecutablePath) {
+            throw "Vivaldi executable was not found after installation. Checked: $($ExecutablePaths -join ', ')"
         }
 
         @{
             version = $download.Version
             download_url = $download.Url
             installed_at = (Get-Date).ToUniversalTime().ToString('o')
-            executable_path = $ExecutablePath
+            executable_path = $installedExecutablePath
         } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $markerPath -Encoding UTF8
 
-        Write-Host "Vivaldi installed: $ExecutablePath"
+        Write-Host "Vivaldi installed: $installedExecutablePath"
     }
     finally {
         Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue

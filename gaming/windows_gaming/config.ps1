@@ -2,9 +2,31 @@ function Get-WindowsGamingConfig {
     [CmdletBinding()]
     param()
 
+    $vivaldiExecutablePaths = @()
+
+    if ($env:ProgramFiles) {
+        $vivaldiExecutablePaths += Join-Path -Path $env:ProgramFiles -ChildPath 'Vivaldi\Application\vivaldi.exe'
+    }
+
+    $localAppData = [Environment]::GetFolderPath('LocalApplicationData')
+    if ($localAppData) {
+        $vivaldiExecutablePaths += Join-Path -Path $localAppData -ChildPath 'Vivaldi\Application\vivaldi.exe'
+    }
+
+    $programFilesX86 = [Environment]::GetEnvironmentVariable('ProgramFiles(x86)')
+    if ($programFilesX86) {
+        $vivaldiExecutablePaths += Join-Path -Path $programFilesX86 -ChildPath 'Vivaldi\Application\vivaldi.exe'
+    }
+
+    $stateRoot = $env:ProgramData
+    if (-not $stateRoot) {
+        $stateRoot = [System.IO.Path]::GetTempPath()
+    }
+
     return @{
         WinGetPackages = @(
             [pscustomobject]@{ Name = '7-Zip'; Id = '7zip.7zip' }
+            [pscustomobject]@{ Name = 'Git'; Id = 'Git.Git' }
             [pscustomobject]@{ Name = 'Microsoft Visual C++ Redistributable 2015-2022 x64'; Id = 'Microsoft.VCRedist.2015+.x64' }
             [pscustomobject]@{ Name = 'Microsoft Visual C++ Redistributable 2015-2022 x86'; Id = 'Microsoft.VCRedist.2015+.x86' }
             [pscustomobject]@{ Name = 'Microsoft Edge WebView2 Runtime'; Id = 'Microsoft.EdgeWebView2Runtime' }
@@ -35,14 +57,16 @@ function Get-WindowsGamingConfig {
 
         Vivaldi = @{
             DownloadPageUrl = 'https://vivaldi.com/download/'
-            StateDir = Join-Path -Path $env:ProgramData -ChildPath 'smr-windows-gaming'
-            ExecutablePath = Join-Path -Path $env:ProgramFiles -ChildPath 'Vivaldi\Application\vivaldi.exe'
+            StateDir = Join-Path -Path $stateRoot -ChildPath 'smr-windows-gaming'
+            ExecutablePaths = $vivaldiExecutablePaths
         }
 
-        ChocolateyPackages = @(
-            'rpcs3'
-            'ryujinx'
-        )
+        RPCS3 = @{
+            ReleaseApiUrl = 'https://api.github.com/repos/RPCS3/rpcs3-binaries-win/releases/latest'
+            InstallDir = 'C:\RPCS3'
+        }
+
+        ChocolateyPackages = @()
 
         NucleusCoop = @{
             ReleaseApiUrl = 'https://api.github.com/repos/SplitScreen-Me/splitscreenme-nucleus/releases/latest'
@@ -55,6 +79,10 @@ function Get-WindowsGamingConfig {
             [pscustomobject]@{
                 Name = 'Citron'
                 Reason = 'No current WinGet or Chocolatey package was found.'
+            }
+            [pscustomobject]@{
+                Name = 'Ryujinx'
+                Reason = 'The official project and GitHub release assets were removed; the Chocolatey package now points at dead 404 download URLs.'
             }
         )
     }
