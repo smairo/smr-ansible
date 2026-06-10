@@ -12,6 +12,7 @@ param(
     [string]$SmbUser,
     [string]$SmbPassword,
     [string[]]$SmbDriveLetters,
+    [switch]$SmbOnly,
 
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$RemainingArgs
@@ -33,10 +34,18 @@ $moduleRoot = Join-Path -Path $PSScriptRoot -ChildPath 'windows_gaming'
 . (Join-Path -Path $moduleRoot -ChildPath 'manual-review.ps1')
 
 Assert-Windows
-Assert-Administrator
+
+$argumentOverrides = ConvertFrom-WindowsGamingRemainingArguments -Arguments $RemainingArgs
+
+if ($argumentOverrides.ContainsKey('SmbOnly')) {
+    $SmbOnly = [bool]$argumentOverrides.SmbOnly
+}
+
+if (-not $SmbOnly) {
+    Assert-Administrator
+}
 
 $config = Get-WindowsGamingConfig
-$argumentOverrides = ConvertFrom-WindowsGamingRemainingArguments -Arguments $RemainingArgs
 
 if ($argumentOverrides.ContainsKey('SmbBasePath')) {
     $SmbBasePath = [string]$argumentOverrides.SmbBasePath
@@ -110,6 +119,22 @@ if ($PSBoundParameters.ContainsKey('SmbPassword') -or $argumentOverrides.Contain
 
 if ($SmbDriveLetters) {
     $config.SmbMappings.DriveLetters = @($SmbDriveLetters)
+}
+
+if ($SmbOnly) {
+    if (-not $config.SmbMappings.Folders -or $config.SmbMappings.Folders.Count -eq 0) {
+        throw 'SmbOnly requires at least one SMB folder. Use -SmbFolders or --smb-folders.'
+    }
+
+    Write-Section 'Mounting SMB drives'
+    $smbParams = @{}
+    foreach ($key in $config.SmbMappings.Keys) {
+        $smbParams[$key] = $config.SmbMappings[$key]
+    }
+    Mount-SmbFolders @smbParams
+
+    Write-Host 'Windows gaming SMB setup finished.'
+    return
 }
 
 Write-Section 'Installing WinGet packages'

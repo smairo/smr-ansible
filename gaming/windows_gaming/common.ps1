@@ -147,8 +147,11 @@ function ConvertFrom-WindowsGamingRemainingArguments {
         '-smb-password' = 'SmbPassword'
         '--smb-drive-letters' = 'SmbDriveLetters'
         '-smb-drive-letters' = 'SmbDriveLetters'
+        '--smb-only' = 'SmbOnly'
+        '-smb-only' = 'SmbOnly'
     }
     $arrayOptionNames = @('SmbFolders', 'SmbDriveLetters')
+    $switchOptionNames = @('SmbOnly')
     $arrayValues = @{
         SmbFolders = [System.Collections.Generic.List[string]]::new()
         SmbDriveLetters = [System.Collections.Generic.List[string]]::new()
@@ -176,6 +179,20 @@ function ConvertFrom-WindowsGamingRemainingArguments {
         }
 
         $name = $optionNames[$optionKey]
+        if ($switchOptionNames -contains $name) {
+            if ($null -eq $valueFromEquals) {
+                $result[$name] = $true
+                continue
+            }
+
+            if ($valueFromEquals -notmatch '^(?i:true|false|1|0)$') {
+                throw "Invalid boolean value for $optionToken`: $valueFromEquals"
+            }
+
+            $result[$name] = ($valueFromEquals -match '^(?i:true|1)$')
+            continue
+        }
+
         if ($arrayOptionNames -contains $name) {
             $values = [System.Collections.Generic.List[string]]::new()
 

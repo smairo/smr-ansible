@@ -22,6 +22,12 @@ To mount SMB folders from `\\192.168.1.64` as persistent network drives, pass th
 powershell.exe -ExecutionPolicy Bypass -File .\gaming\windows_gaming.ps1 --smb-folders misc game movie pro --smb-user smair --smb-password 1234
 ```
 
+If you ran the main setup elevated and the mapped drives do not appear in normal File Explorer, run the SMB step again from a non-admin PowerShell session:
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File .\gaming\windows_gaming.ps1 --smb-only --smb-folders misc game movie pro --smb-user smair --smb-password 1234
+```
+
 The SMB step maps each folder to the next free drive letter from `Z:` downward. To choose letters explicitly, pass the same number of letters as folders:
 
 ```powershell
