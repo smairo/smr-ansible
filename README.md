@@ -1,5 +1,13 @@
 # smr-ansible
 
+## Windows development workstation
+
+To run the Windows development setup on a fresh machine without cloning the repo:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/smairo/smr-ansible/main/workstations/windows_dev.ps1 | iex"
+```
+
 ## Windows gaming workstation
 
 To run the Windows gaming setup on a fresh machine without cloning the repo:

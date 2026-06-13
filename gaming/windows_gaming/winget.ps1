@@ -1,95 +1,39 @@
-function Get-WinGetCommand {
-    [CmdletBinding()]
-    param()
-
-    $winget = Get-Command winget.exe -ErrorAction SilentlyContinue
-    if (-not $winget) {
-        throw 'winget.exe was not found. Install or update Microsoft App Installer before running this setup.'
-    }
-
-    return $winget.Source
-}
-
-function Test-WinGetPackageInstalled {
+function Resolve-SharedWinGetScript {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true)]
-        [string]$WingetPath,
-
-        [Parameter(Mandatory = $true)]
-        [string]$Id
+        [string]$ScriptRoot
     )
 
-    $output = & $WingetPath list --id $Id --exact --source winget --disable-interactivity 2>&1
-    $text = $output | Out-String
+    if (-not [string]::IsNullOrWhiteSpace($ScriptRoot)) {
+        $localSharedPath = Join-Path -Path $ScriptRoot -ChildPath '..\..\workstations\windows\winget.ps1'
+        $localSharedPath = [System.IO.Path]::GetFullPath($localSharedPath)
 
-    return ($LASTEXITCODE -eq 0) -and ($text -match [regex]::Escape($Id))
+        if (Test-Path -LiteralPath $localSharedPath -PathType Leaf) {
+            return $localSharedPath
+        }
+    }
+
+    $sourceBaseUrl = $env:SMR_WINDOWS_SHARED_SOURCE_BASE_URL
+    if ([string]::IsNullOrWhiteSpace($sourceBaseUrl)) {
+        $sourceBaseUrl = 'https://raw.githubusercontent.com/smairo/smr-ansible/main/workstations/windows'
+    }
+
+    $tempRoot = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath ('smr-windows-shared-' + [System.Guid]::NewGuid().ToString('N'))
+    New-Item -Path $tempRoot -ItemType Directory -Force | Out-Null
+
+    $sharedPath = Join-Path -Path $tempRoot -ChildPath 'winget.ps1'
+    $requestParams = @{
+        Uri = $sourceBaseUrl.TrimEnd('/') + '/winget.ps1'
+        OutFile = $sharedPath
+    }
+
+    if ($PSVersionTable.PSEdition -eq 'Desktop') {
+        $requestParams.UseBasicParsing = $true
+    }
+
+    Invoke-WebRequest @requestParams
+
+    return $sharedPath
 }
 
-function Install-WinGetPackages {
-    [CmdletBinding(SupportsShouldProcess = $true)]
-    param(
-        [object[]]$Packages,
-
-        [switch]$FailOnError
-    )
-
-    if (-not $Packages -or $Packages.Count -eq 0) {
-        Write-Host 'No WinGet packages configured.'
-        return
-    }
-
-    $winget = Get-WinGetCommand
-    $failed = [System.Collections.Generic.List[object]]::new()
-
-    foreach ($package in $Packages) {
-        $name = [string]$package.Name
-        $id = [string]$package.Id
-
-        if (Test-WinGetPackageInstalled -WingetPath $winget -Id $id) {
-            Write-Host "Present: $name ($id)"
-            continue
-        }
-
-        if (-not $PSCmdlet.ShouldProcess("$name ($id)", 'Install WinGet package')) {
-            continue
-        }
-
-        $installArgs = @(
-            'install'
-            '--id', $id
-            '--exact'
-            '--source', 'winget'
-            '--silent'
-            '--accept-package-agreements'
-            '--accept-source-agreements'
-            '--disable-interactivity'
-        )
-
-        Write-Host "Installing: $name ($id)"
-        $output = & $winget @installArgs 2>&1
-        $exitCode = $LASTEXITCODE
-
-        if ($exitCode -ne 0) {
-            $failed.Add([pscustomobject]@{
-                Name = $name
-                Id = $id
-                ExitCode = $exitCode
-                Output = ($output | Out-String).Trim()
-            })
-            Write-Warning "Failed: $name ($id)"
-            continue
-        }
-
-        Write-Host "Installed: $name ($id)"
-    }
-
-    if ($failed.Count -gt 0) {
-        $details = $failed | Format-List | Out-String
-        if ($FailOnError) {
-            throw "One or more WinGet packages failed to install:`n$details"
-        }
-
-        Write-Warning "One or more WinGet packages failed to install. Continuing with the rest of the setup.`n$details"
-    }
-}
+. (Resolve-SharedWinGetScript -ScriptRoot $PSScriptRoot)
