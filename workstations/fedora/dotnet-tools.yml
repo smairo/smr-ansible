@@ -27,39 +27,6 @@
   ansible.builtin.set_fact:
     fedora_dotnet_tools_home: "{{ ansible_facts.getent_passwd[fedora_dotnet_tools_user][4] }}"
 
-- name: Check .NET tools user zshrc
-  become: true
-  become_user: "{{ fedora_dotnet_tools_user }}"
-  ansible.builtin.stat:
-    path: "{{ fedora_dotnet_tools_home }}/.zshrc"
-  register: fedora_dotnet_tools_zshrc
-  environment:
-    HOME: "{{ fedora_dotnet_tools_home }}"
-
-- name: Create .NET tools user zshrc
-  become: true
-  become_user: "{{ fedora_dotnet_tools_user }}"
-  ansible.builtin.file:
-    path: "{{ fedora_dotnet_tools_home }}/.zshrc"
-    state: touch
-    mode: "0644"
-  when: not fedora_dotnet_tools_zshrc.stat.exists
-  environment:
-    HOME: "{{ fedora_dotnet_tools_home }}"
-
-- name: Add .NET global tools to zshrc
-  become: true
-  become_user: "{{ fedora_dotnet_tools_user }}"
-  ansible.builtin.blockinfile:
-    path: "{{ fedora_dotnet_tools_home }}/.zshrc"
-    create: true
-    mode: "0644"
-    marker: "# {mark} ANSIBLE MANAGED BLOCK - dotnet tools"
-    block: |
-      export PATH="$HOME/.dotnet/tools:$PATH"
-  environment:
-    HOME: "{{ fedora_dotnet_tools_home }}"
-
 - name: List installed .NET global tools
   become: true
   become_user: "{{ fedora_dotnet_tools_user }}"

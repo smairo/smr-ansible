@@ -35,26 +35,6 @@
       - unzip
     state: present
 
-- name: Check workstation zshrc
-  become: true
-  become_user: "{{ fedora_runtime_user }}"
-  ansible.builtin.stat:
-    path: "{{ fedora_runtime_home }}/.zshrc"
-  register: fedora_runtime_zshrc
-  environment:
-    HOME: "{{ fedora_runtime_home }}"
-
-- name: Create workstation zshrc
-  become: true
-  become_user: "{{ fedora_runtime_user }}"
-  ansible.builtin.file:
-    path: "{{ fedora_runtime_home }}/.zshrc"
-    state: touch
-    mode: "0644"
-  when: not fedora_runtime_zshrc.stat.exists
-  environment:
-    HOME: "{{ fedora_runtime_home }}"
-
 - name: Download Bun installer
   ansible.builtin.get_url:
     url: https://bun.com/install
@@ -71,21 +51,8 @@
   environment:
     BUN_INSTALL: "{{ fedora_runtime_home }}/.bun"
     HOME: "{{ fedora_runtime_home }}"
-    SHELL: /usr/bin/zsh
-
-- name: Add Bun to zshrc
-  become: true
-  become_user: "{{ fedora_runtime_user }}"
-  ansible.builtin.blockinfile:
-    path: "{{ fedora_runtime_home }}/.zshrc"
-    create: true
-    mode: "0644"
-    marker: "# {mark} ANSIBLE MANAGED BLOCK - bun"
-    block: |
-      export BUN_INSTALL="$HOME/.bun"
-      export PATH="$BUN_INSTALL/bin:$PATH"
-  environment:
-    HOME: "{{ fedora_runtime_home }}"
+    # Select the installer fallback that leaves shell profiles unchanged.
+    SHELL: /bin/sh
 
 - name: Download NVM installer
   ansible.builtin.get_url:
@@ -103,21 +70,6 @@
   environment:
     HOME: "{{ fedora_runtime_home }}"
     PROFILE: /dev/null
-
-- name: Add NVM to zshrc
-  become: true
-  become_user: "{{ fedora_runtime_user }}"
-  ansible.builtin.blockinfile:
-    path: "{{ fedora_runtime_home }}/.zshrc"
-    create: true
-    mode: "0644"
-    marker: "# {mark} ANSIBLE MANAGED BLOCK - nvm"
-    block: |
-      export NVM_DIR="$HOME/.nvm"
-      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-      [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-  environment:
-    HOME: "{{ fedora_runtime_home }}"
 
 - name: Install Node.js 26 with NVM
   become: true
