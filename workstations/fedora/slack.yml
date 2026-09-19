@@ -8,13 +8,15 @@
   ansible.builtin.yum_repository:
     name: slacktechnologies_slack
     description: slacktechnologies_slack
-    baseurl: "https://packagecloud.io/slacktechnologies/slack/fedora/{{ ansible_distribution_major_version }}/$basearch"
+    # Slack publishes current RPMs under this fixed path, regardless of Fedora release.
+    baseurl: https://packagecloud.io/slacktechnologies/slack/fedora/21/$basearch
     enabled: true
     repo_gpgcheck: true
     gpgcheck: false
     gpgkey: https://packagecloud.io/slacktechnologies/slack/gpgkey
+    # Use the system CA trust store; the legacy ca-bundle.crt path is absent on Fedora 44.
     sslverify: true
-    sslcacert: /etc/pki/tls/certs/ca-bundle.crt
+    skip_if_unavailable: false
     metadata_expire: 300
     file: slacktechnologies_slack
   register: fedora_slack_repository

@@ -1,0 +1,81 @@
+- name: Resolve Spotify user
+  ansible.builtin.set_fact:
+    fedora_spotify_user: >-
+      {{
+        workstation_user
+        | default(
+          lookup('ansible.builtin.env', 'SUDO_USER')
+          | default(lookup('ansible.builtin.env', 'USER'), true),
+          true
+        )
+      }}
+
+- name: Require a desktop user for Spotify
+  ansible.builtin.assert:
+    that:
+      - fedora_spotify_user | length > 0
+      - fedora_spotify_user != 'root'
+      - fedora_spotify_user != 'admin_ansible'
+    fail_msg: "Set workstation_user to the desktop user for Spotify installation."
+
+- name: Read Spotify user account
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ fedora_spotify_user }}"
+
+- name: Set Spotify user home
+  ansible.builtin.set_fact:
+    fedora_spotify_home: "{{ ansible_facts.getent_passwd[fedora_spotify_user][4] }}"
+
+- name: Install Spotify dependencies
+  ansible.builtin.dnf:
+    name: flatpak
+    state: present
+  register: fedora_spotify_dependencies
+
+- name: List Spotify user Flatpak remotes
+  become: true
+  become_user: "{{ fedora_spotify_user }}"
+  ansible.builtin.command:
+    cmd: flatpak remotes --user --columns=name
+  check_mode: false
+  register: fedora_spotify_flatpak_remotes
+  changed_when: false
+  when: not ansible_check_mode or not fedora_spotify_dependencies.changed
+  environment:
+    HOME: "{{ fedora_spotify_home }}"
+
+- name: Add Flathub user remote for Spotify
+  become: true
+  become_user: "{{ fedora_spotify_user }}"
+  ansible.builtin.command:
+    cmd: flatpak remote-add --user flathub https://flathub.org/repo/flathub.flatpakrepo
+  when:
+    - not ansible_check_mode
+    - "'flathub' not in (fedora_spotify_flatpak_remotes.stdout_lines | default([]))"
+  environment:
+    HOME: "{{ fedora_spotify_home }}"
+
+- name: Check Spotify Flatpak
+  become: true
+  become_user: "{{ fedora_spotify_user }}"
+  ansible.builtin.command:
+    cmd: flatpak info --user com.spotify.Client
+  check_mode: false
+  register: fedora_spotify_flatpak
+  changed_when: false
+  failed_when: false
+  when: not ansible_check_mode or not fedora_spotify_dependencies.changed
+  environment:
+    HOME: "{{ fedora_spotify_home }}"
+
+- name: Install Spotify Flatpak
+  become: true
+  become_user: "{{ fedora_spotify_user }}"
+  ansible.builtin.command:
+    cmd: flatpak install --user --noninteractive flathub com.spotify.Client
+  when:
+    - not ansible_check_mode
+    - fedora_spotify_flatpak.rc | default(1) != 0
+  environment:
+    HOME: "{{ fedora_spotify_home }}"

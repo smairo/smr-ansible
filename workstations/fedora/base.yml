@@ -8,7 +8,6 @@
 - name: Install base packages
   ansible.builtin.dnf:
     name:
-      - cronie
       - zsh
       - git
       - git-lfs
@@ -19,12 +18,6 @@
     update_cache: true
   check_mode: false
   changed_when: false
-
-- name: Ensure crond is enabled and running
-  ansible.builtin.service:
-    name: crond
-    enabled: true
-    state: started
 
 - name: Remove quiet kernel boot argument
   ansible.builtin.command:

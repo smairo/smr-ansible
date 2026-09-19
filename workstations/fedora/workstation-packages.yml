@@ -8,14 +8,33 @@
     state: present
   register: fedora_desktop_workstation_packages
 
-- name: Install Java 21 packages
+- name: Import Adoptium package signing key
+  ansible.builtin.rpm_key:
+    key: https://packages.adoptium.net/artifactory/api/gpg/key/public
+    state: present
+  register: fedora_adoptium_repository_key
+
+- name: Configure Adoptium repository
+  ansible.builtin.yum_repository:
+    name: Adoptium
+    description: Eclipse Adoptium
+    baseurl: https://packages.adoptium.net/artifactory/rpm/fedora/$releasever/$basearch
+    enabled: true
+    gpgcheck: true
+    gpgkey: https://packages.adoptium.net/artifactory/api/gpg/key/public
+    file: adoptium
+  register: fedora_adoptium_repository
+
+# Fedora 44 removed java-21-openjdk; Temurin provides the Java 21 runtime and JDK.
+- name: Install Temurin Java 21 JDK
   ansible.builtin.dnf:
-    name:
-      - java-21-openjdk
-      - java-21-openjdk-devel
+    name: temurin-21-jdk
     state: present
     update_cache: true
   register: fedora_java_packages
+  when: >
+    not ansible_check_mode
+    or not (fedora_adoptium_repository_key.changed or fedora_adoptium_repository.changed)
 
 - name: Install .NET SDK packages
   ansible.builtin.dnf:
@@ -33,6 +52,12 @@
     state: present
   register: fedora_azure_cli_package
 
+- name: Install uv Python package and project manager
+  ansible.builtin.dnf:
+    name: uv
+    state: present
+  register: fedora_uv_package
+
 - name: Record workstation package changes
   ansible.builtin.set_fact:
     fedora_workstation_packages:
@@ -42,4 +67,5 @@
           or fedora_java_packages.changed
           or fedora_dotnet_sdk_packages.changed
           or fedora_azure_cli_package.changed
+          or fedora_uv_package.changed
         }}

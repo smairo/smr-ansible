@@ -119,12 +119,12 @@
   environment:
     HOME: "{{ fedora_runtime_home }}"
 
-- name: Install Node.js 25 with NVM
+- name: Install Node.js 26 with NVM
   become: true
   become_user: "{{ fedora_runtime_user }}"
   ansible.builtin.shell:
-    cmd: source "{{ fedora_runtime_home }}/.nvm/nvm.sh" && nvm install 25
-    creates: "{{ fedora_runtime_home }}/.nvm/versions/node/v25.*"
+    cmd: source "{{ fedora_runtime_home }}/.nvm/nvm.sh" && nvm install 26
+    creates: "{{ fedora_runtime_home }}/.nvm/versions/node/v26.*"
     executable: /bin/bash
   environment:
     HOME: "{{ fedora_runtime_home }}"

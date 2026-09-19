@@ -36,17 +36,14 @@
     - name: Install Podman Desktop
       ansible.builtin.import_tasks: fedora/podman-desktop.yml
 
+    - name: Install Spotify
+      ansible.builtin.import_tasks: fedora/spotify.yml
+
     - name: Install workstation packages
       ansible.builtin.import_tasks: fedora/workstation-packages.yml
 
-    - name: Configure Oh My Zsh
-      ansible.builtin.import_tasks: fedora/oh-my-zsh.yml
-
     - name: Install .NET global tools
       ansible.builtin.import_tasks: fedora/dotnet-tools.yml
-
-    - name: Install workstation user files
-      ansible.builtin.import_tasks: fedora/user-files.yml
 
     - name: Install JavaScript runtimes
       ansible.builtin.import_tasks: fedora/javascript-runtimes.yml
@@ -56,6 +53,3 @@
 
     - name: Configure NVIDIA drivers
       ansible.builtin.import_tasks: fedora/nvidia.yml
-
-    - name: Configure ansible-pull
-      ansible.builtin.import_tasks: fedora/ansible-pull.yml
